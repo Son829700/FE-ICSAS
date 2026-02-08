@@ -51,7 +51,6 @@ export default function App() {
             <Route path="/BI/ticket-detail" element={<TicketDetailBI />} />
             <Route path="/dashboard" element={<DashboardManagement />} />
             <Route path="/group-detail" element={<GroupDetail />} />
-            <Route path="/api-key" element={<ApiKeyManager />} />
 
 
             {/* Others Page */}
