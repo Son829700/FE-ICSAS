@@ -14,7 +14,7 @@ export default function TicketDetailBI() {
 
   /* ===== FORM STATE ===== */
   const [status, setStatus] = useState<TicketStatus | "">("");
-  const [assignBI, setAssignBI] = useState("");
+  const [assignBI] = useState("");
   const [comment, setComment] = useState("");
 
   const handleSubmit = () => {

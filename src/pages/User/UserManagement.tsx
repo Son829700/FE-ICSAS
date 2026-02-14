@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PageMeta from "../../components/common/PageMeta";
-import Button from "../../components/ui/button/Button";
-import { PlusIcon } from "../../icons";
+
 import {
   useFloating,
   offset,
@@ -9,8 +8,7 @@ import {
   shift,
   autoUpdate,
 } from "@floating-ui/react";
-import { MoreHorizontal } from "lucide-react";
-import AddUserCard from "./AddUserCard";
+import { MoreHorizontal, Search, Filter } from "lucide-react";
 
 /* =======================
    TYPES
@@ -25,6 +23,11 @@ interface User {
   department: string;
   created_at: string;
   status: UserStatus;
+}
+interface FilterValue {
+  keyword: string;
+  role: string;
+  department: string;
 }
 
 /* =======================
@@ -100,8 +103,30 @@ function ActionMenu({
 ======================= */
 export default function UserManagement() {
   const [page, setPage] = useState(1);
-  const [isOpen, setIsOpen] = useState(false);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+
+  const [filter, setFilter] = useState<FilterValue>({
+    keyword: "",
+    role: "",
+    department: "",
+  });
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  /* Close filter dropdown */
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setFilterOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   /* MOCK DATA – 3 PAGES */
   const users: User[] = [
@@ -151,7 +176,16 @@ export default function UserManagement() {
       status: "ACTIVE",
     },
   ];
+  const filteredUsers = users.filter((u) => {
+    const keywordMatch =
+      u.user_name.toLowerCase().includes(filter.keyword.toLowerCase()) ||
+      u.email.toLowerCase().includes(filter.keyword.toLowerCase());
 
+    const roleMatch = !filter.role || u.system_role === filter.role;
+    const deptMatch = !filter.department || u.department === filter.department;
+
+    return keywordMatch && roleMatch && deptMatch;
+  });
   return (
     <>
       <PageMeta title="User Management" description="User management page" />
@@ -161,19 +195,87 @@ export default function UserManagement() {
         onClick={() => setActiveMenuId(null)}
       >
         {/* HEADER */}
-        <div className="mb-4 flex flex-col gap-2 px-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="mb-4 flex flex-col gap-3 px-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
             Users
           </h3>
+          <div className="flex gap-3">
+            {/* Search với Icon */}
+            <div className="relative">
+              <span className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                <Search size={20} />
+              </span>
+              <input
+                type="text"
+                placeholder="Search name or email..."
+                value={filter.keyword}
+                onChange={(e) =>
+                  setFilter({ ...filter, keyword: e.target.value })
+                }
+                // Thêm class 'pl-11' để tạo khoảng trống cho icon bên trái
+                className="h-11 w-[260px] rounded-lg border border-gray-300 bg-transparent pl-11 pr-4 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500"
+              />
+            </div>
 
-          <Button
-            size="md"
-            variant="primary"
-            startIcon={<PlusIcon className="size-5 text-white" />}
-            onClick={() => setIsOpen(true)}
-          >
-            Create User
-          </Button>
+            {/* Filter với Icon */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setFilterOpen(!filterOpen)}
+                // Thêm 'flex items-center gap-2' để căn chỉnh icon và chữ
+                className="flex h-11 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]"
+              >
+                <Filter size={20} />
+                Filter
+              </button>
+
+              {filterOpen && (
+                <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                  <div className="mb-4">
+                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Role
+                    </label>
+                    <select
+                      value={filter.role}
+                      onChange={(e) =>
+                        setFilter({ ...filter, role: e.target.value })
+                      }
+                      className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    >
+                      <option value="">All</option>
+                      <option value="ADMIN">Admin</option>
+                      <option value="DEVELOPER">Developer</option>
+                      <option value="EMPLOYEE">Employee</option>
+                    </select>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Department
+                    </label>
+                    <select
+                      value={filter.department}
+                      onChange={(e) =>
+                        setFilter({ ...filter, department: e.target.value })
+                      }
+                      className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    >
+                      <option value="">All</option>
+                      <option value="IT">IT</option>
+                      <option value="HR">HR</option>
+                      <option value="Finance">Finance</option>
+                    </select>
+                  </div>
+
+                  <button
+                    onClick={() => setFilterOpen(false)}
+                    className="h-10 w-full rounded-lg bg-brand-500 text-sm font-medium text-white hover:bg-brand-600 transition"
+                  >
+                    Apply
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* TABLE */}
@@ -189,7 +291,6 @@ export default function UserManagement() {
                     "Department",
                     "Created At",
                     "Status",
-                
                   ].map((h) => (
                     <th
                       key={h}
@@ -203,7 +304,7 @@ export default function UserManagement() {
               </thead>
 
               <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                {users.map((u) => (
+                {filteredUsers.map((u) => (
                   <tr key={u.user_id}>
                     <td className="px-4 py-4 font-medium text-theme-sm text-gray-700 dark:text-gray-400">
                       {u.user_name}
@@ -311,9 +412,6 @@ export default function UserManagement() {
           </div>
         </div>
       </div>
-
-      {/* MODAL */}
-      <AddUserCard isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </>
   );
 }

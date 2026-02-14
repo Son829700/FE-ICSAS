@@ -103,7 +103,6 @@ const navItems: NavItem[] = [
     name: "Admin",
     icon: <PageIcon />,
     subItems: [
-      { name: "Home / DashBoard", path: "/", pro: false },
       { name: "User Management", path: "/user", pro: false },
       { name: "Log Monitoring", path: "/log", pro: false },
       { name: "Dashboard logs", path: "/log-dashboard", pro: false },
@@ -113,7 +112,6 @@ const navItems: NavItem[] = [
     name: "BI",
     icon: <PageIcon />,
     subItems: [
-      { name: "Home / DashBoard", path: "/", pro: false },
       { name: "Dashboard Management", path: "/dashboard", pro: false },
       { name: "Group Management", path: "/group", pro: false },
       { name: "Group detail", path: "/group-detail", pro: false },
@@ -125,7 +123,6 @@ const navItems: NavItem[] = [
     name: "Manager",
     icon: <PageIcon />,
     subItems: [
-      { name: "Home / DashBoard", path: "/", pro: false },
       { name: "Ticket Management", path: "/ticket", pro: false },
       { name: "My Ticket", path: "/ticket", pro: false },
       { name: "Ticket detail", path: "/manager/ticket", pro: false },
@@ -135,7 +132,6 @@ const navItems: NavItem[] = [
     name: "Staff",
     icon: <PageIcon />,
     subItems: [
-      { name: "Home / DashBoard", path: "/", pro: false },
       { name: "My Ticket", path: "/ticket", pro: false },
       { name: "Ticket detail", path: "/ticket-detail", pro: false },
     ],
