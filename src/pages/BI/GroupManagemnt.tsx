@@ -1,50 +1,117 @@
-import React, { useState } from "react";
-import { Plus, Eye, Users, ChevronUp, ChevronDown } from "lucide-react";
+import { useEffect, useState } from "react";
+import API from "../../api";
+import { Plus, Eye, Users, ChevronUp, ChevronDown, Pencil } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 // UI Components
-import ComponentCard from "../components/common/ComponentCard";
-import PageBreadcrumb from "../components/common/PageBreadCrumb";
-import PageMeta from "../components/common/PageMeta";
-import Button from "../components/ui/button/Button";
-import { Modal } from "../components/ui/modal";
+import ComponentCard from "../../components/common/ComponentCard";
+import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+import PageMeta from "../../components/common/PageMeta";
+import Button from "../../components/ui/button/Button";
+import { Modal } from "../../components/ui/modal";
 import {
   Table,
   TableBody,
   TableCell,
   TableHeader,
   TableRow,
-} from "../components/ui/table";
+} from "../../components/ui/table";
 
 // Cập nhật Type Definition thêm field description
 export interface Group {
-  id: number;
-  name: string;
-  type: string;
-  department: string;
-  members: number;
-  description?: string; 
+  group_id: string;
+  group_name: string;
+  description: string;
+  member: number;
+  groupType: string;
+  status: string;
+  createdAt: string;
+  department_name?: string;
 }
 
-const DEPARTMENTS = ["Marketing", "Sales", "Data", "IT", "Finance", "HR", "Operation"];
-
-const mockGroups: Group[] = [
-  { id: 1, name: "Marketing", type: "Traditional", department: "Marketing", members: 12, description: "Main marketing group for core products." },
-  { id: 2, name: "Sales Team A", type: "Adhoc", department: "Sales", members: 8, description: "Temporary sales task force." },
-  { id: 3, name: "BI Team", type: "Traditional", department: "Data", members: 6, description: "Business Intelligence and data analysis." },
-  { id: 4, name: "Project Phoenix", type: "Adhoc", department: "IT", members: 10, description: "Infrastructure migration project group." },
-];
-
 export default function GroupManagement() {
-  // States
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
-  const [sortKey, setSortKey] = useState<keyof Group>("name");
+  const [sortKey, setSortKey] = useState<keyof Group>("group_id");
   const [sortAsc, setSortAsc] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
+  const [groups, setGroup] = useState<Group[]>([]);
+  const [formData, setFormData] = useState({
+    group_name: "",
+    description: "",
+    groupType: "",
+  });
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
+  ) => {
+    const { name, value } = e.target;
 
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  useEffect(() => {
+    if (editingGroup) {
+      setFormData({
+        group_name: editingGroup.group_name,
+        description: editingGroup.description,
+        groupType: editingGroup.groupType,
+      });
+    } else {
+      setFormData({
+        group_name: "",
+        description: "",
+        groupType: "",
+      });
+    }
+  }, [editingGroup]);
+  const handleSubmit = async () => {
+    console.log(formData);
+
+    try {
+      if (editingGroup) {
+        // UPDATE
+        await API.put(`/groups/${editingGroup.group_id}`, {
+          group_name: formData.group_name,
+          description: formData.description,
+          groupType: formData.groupType,
+        });
+      } else {
+        // CREATE
+        await API.post("/groups", {
+          group_name: formData.group_name,
+          description: formData.description,
+          groupType: formData.groupType,
+        });
+      }
+      const response = await API.get("/groups");
+      setGroup(response.data.data);
+
+      handleCloseModal();
+    } catch (error) {
+      console.error("Submit error:", error);
+    }
+  };
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await API.get("/groups");
+        setGroup(response.data.data);
+      } catch (error) {
+        console.error("Fetch error in GroupManagement:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
   // Logic: Filter & Sort
-  const filteredData = mockGroups
-    .filter((g) => g.name.toLowerCase())
+  const filteredData = groups
+    .filter((g) => g.group_name.toLowerCase())
     .sort((a, b) => {
       const valA = a[sortKey] ?? "";
       const valB = b[sortKey] ?? "";
@@ -57,7 +124,7 @@ export default function GroupManagement() {
   const totalPages = Math.ceil(filteredData.length / pageSize);
   const pagedData = filteredData.slice(
     (currentPage - 1) * pageSize,
-    currentPage * pageSize
+    currentPage * pageSize,
   );
 
   const toggleSort = (key: keyof Group) => {
@@ -85,7 +152,10 @@ export default function GroupManagement() {
 
   return (
     <div>
-      <PageMeta title="Group Management | Admin" description="Manage user groups" />
+      <PageMeta
+        title="Group Management | Admin"
+        description="Manage user groups"
+      />
       <PageBreadcrumb pageTitle="Group Management" />
 
       <ComponentCard
@@ -102,8 +172,6 @@ export default function GroupManagement() {
           </Button>
         }
       >
-       
-
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
@@ -111,7 +179,7 @@ export default function GroupManagement() {
                 {[
                   { key: "name", label: "Group Name" },
                   { key: "type", label: "Type" },
-                  { key: "department", label: "Department" },
+                  { key: "status", label: "Status" },
                   { key: "members", label: "Members" },
                 ].map((col) => (
                   <TableCell
@@ -119,19 +187,36 @@ export default function GroupManagement() {
                     isHeader
                     className="px-5 py-3 text-start text-theme-xs text-gray-500"
                   >
-                    <div 
+                    <div
                       className="flex items-center gap-1 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
                       onClick={() => toggleSort(col.key as keyof Group)}
                     >
                       {col.label}
                       <div className="flex flex-col">
-                        <ChevronUp size={10} className={sortKey === col.key && sortAsc ? "text-brand-500" : "text-gray-300"} />
-                        <ChevronDown size={10} className={sortKey === col.key && !sortAsc ? "text-brand-500" : "text-gray-300"} />
+                        <ChevronUp
+                          size={10}
+                          className={
+                            sortKey === col.key && sortAsc
+                              ? "text-brand-500"
+                              : "text-gray-300"
+                          }
+                        />
+                        <ChevronDown
+                          size={10}
+                          className={
+                            sortKey === col.key && !sortAsc
+                              ? "text-brand-500"
+                              : "text-gray-300"
+                          }
+                        />
                       </div>
                     </div>
                   </TableCell>
                 ))}
-                <TableCell isHeader className="px-5 py-3 text-right text-theme-xs text-gray-500">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 text-left text-theme-xs text-gray-500"
+                >
                   Action
                 </TableCell>
               </TableRow>
@@ -140,39 +225,53 @@ export default function GroupManagement() {
             <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
               {pagedData.length > 0 ? (
                 pagedData.map((group) => (
-                  <TableRow key={group.id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.01]">
+                  <TableRow
+                    key={group.group_id}
+                    className="hover:bg-gray-50/50 dark:hover:bg-white/[0.01]"
+                  >
                     <TableCell className="px-5 py-4 font-medium text-gray-800 dark:text-white/90">
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 dark:bg-gray-800">
                           <Users size={16} className="text-gray-500" />
                         </div>
                         <div>
-                           <p className="font-medium">{group.name}</p>
-                           {/* Hiển thị description nhỏ dưới tên group nếu muốn */}
-                           <p className="text-[11px] text-gray-400 font-normal line-clamp-1">{group.description}</p>
+                          <p className="font-medium">{group.group_name}</p>
+                          {/* Hiển thị description nhỏ dưới tên group nếu muốn */}
+                          <p className="text-[11px] text-gray-400 font-normal line-clamp-1">
+                            {group.description}
+                          </p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="px-5 py-4 text-gray-600 dark:text-gray-400">
-                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        group.type === "Traditional" 
-                          ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-500" 
-                          : "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-500"
-                      }`}>
-                        {group.type}
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          group.groupType === "Traditional"
+                            ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-500"
+                            : "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-500"
+                        }`}
+                      >
+                        {group.groupType}
                       </span>
                     </TableCell>
                     <TableCell className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
-                      {group.department}
+                      {group.status}
                     </TableCell>
                     <TableCell className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
-                      {group.members} members
+                      {group.member} members
                     </TableCell>
-                    <TableCell className="px-5 py-4 text-right">
+                    <TableCell className="px-5 py-4">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleEditClick(group)}
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate(`/groups/${group.group_id}`)}
                       >
                         <Eye className="size-4" />
                       </Button>
@@ -217,14 +316,24 @@ export default function GroupManagement() {
       </ComponentCard>
 
       {/* --- MODAL --- */}
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal} className="max-w-lg p-6">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        className="max-w-lg p-6"
+      >
         <div className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-800">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
             {editingGroup ? "Edit Group" : "Create New Group"}
           </h3>
         </div>
 
-        <form className="mt-6 space-y-4" onSubmit={(e) => e.preventDefault()}>
+        <form
+          className="mt-6 space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+        >
           {/* Group Name */}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -232,42 +341,50 @@ export default function GroupManagement() {
             </label>
             <input
               type="text"
-              defaultValue={editingGroup?.name || ""}
+              name="group_name"
+              value={formData.group_name}
+              onChange={handleChange}
               placeholder="e.g. Marketing Team"
               className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div>
             {/* Type Selection */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Type
               </label>
               <select
-                defaultValue={editingGroup?.type || "Traditional"}
+                name="groupType"
+                value={formData.groupType}
+                onChange={handleChange}
                 className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               >
-                <option value="Traditional">Traditional</option>
-                <option value="Adhoc">Adhoc</option>
+                <option value="TRADITIONAL">Traditional</option>
+                <option value="ADHOC">Adhoc</option>
               </select>
             </div>
-            
+
             {/* Department Selection - Thay đổi từ input sang select */}
-            <div>
+            {/* <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Department
               </label>
               <select
-                defaultValue={editingGroup?.department || ""}
+                defaultValue={editingGroup?.status || ""}
                 className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               >
-                <option value="" disabled>Select Department</option>
+                <option value="" disabled>
+                  Select Department
+                </option>
                 {DEPARTMENTS.map((dept) => (
-                  <option key={dept} value={dept}>{dept}</option>
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
                 ))}
               </select>
-            </div>
+            </div> */}
           </div>
 
           {/* Description - Field mới thêm vào */}
@@ -276,7 +393,9 @@ export default function GroupManagement() {
               Description
             </label>
             <textarea
-              defaultValue={editingGroup?.description || ""}
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
               rows={3}
               placeholder="Enter group description..."
               className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white resize-none"

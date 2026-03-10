@@ -9,20 +9,27 @@ import {
   autoUpdate,
 } from "@floating-ui/react";
 import { MoreHorizontal, Search, Filter } from "lucide-react";
+import API from "../../api";
 
 /* =======================
    TYPES
 ======================= */
-type UserRole = "ADMIN" | "DEVELOPER" | "EMPLOYEE";
-type UserStatus = "ACTIVE" | "INACTIVE";
+
+export interface Department {
+  department_id: string;
+  department_name: string;
+  manager: User;
+  status: string;
+}
+
 interface User {
   user_id: string;
-  user_name: string;
+  username: string;
   email: string;
-  system_role: UserRole;
-  department: string;
-  created_at: string;
-  status: UserStatus;
+  role: string;
+  department: Department | null;
+  createdAt: string;
+  status: string;
 }
 interface FilterValue {
   keyword: string;
@@ -105,7 +112,8 @@ export default function UserManagement() {
   const [page, setPage] = useState(1);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
-
+  const [users, setUsers] = useState<User[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [filter, setFilter] = useState<FilterValue>({
     keyword: "",
     role: "",
@@ -113,6 +121,31 @@ export default function UserManagement() {
   });
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await API.get("/users");
+        setUsers(response.data.data);
+        console.log("API response:", response.data);
+      } catch (error) {
+        console.error("Fetch error in UserManagement:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+  const filteredUsers = users.filter((u) => {
+    const keywordMatch =
+      u.username.toLowerCase().includes(filter.keyword.toLowerCase()) ||
+      u.email.toLowerCase().includes(filter.keyword.toLowerCase());
+
+    const roleMatch = !filter.role || u.role === filter.role;
+    const deptMatch =
+      !filter.department || u.department?.department_name === filter.department;
+
+    return keywordMatch && roleMatch && deptMatch;
+  });
 
   /* Close filter dropdown */
   useEffect(() => {
@@ -127,65 +160,18 @@ export default function UserManagement() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const res = await API.get("/departments");
+        setDepartments(res.data.data);
+      } catch (error) {
+        console.error("Fetch departments error:", error);
+      }
+    };
 
-  /* MOCK DATA – 3 PAGES */
-  const users: User[] = [
-    {
-      user_id: "1",
-      user_name: "Nguyen Van A",
-      email: "a@company.com",
-      system_role: "ADMIN",
-      department: "Marketing",
-      created_at: "2024-01-10",
-      status: "ACTIVE",
-    },
-    {
-      user_id: "2",
-      user_name: "Tran Thi B",
-      email: "b@company.com",
-      system_role: "DEVELOPER",
-      department: "IT",
-      created_at: "2024-01-12",
-      status: "ACTIVE",
-    },
-    {
-      user_id: "3",
-      user_name: "Le Van C",
-      email: "c@company.com",
-      system_role: "EMPLOYEE",
-      department: "Finance",
-      created_at: "2024-01-15",
-      status: "INACTIVE",
-    },
-    {
-      user_id: "4",
-      user_name: "Pham Thi D",
-      email: "d@company.com",
-      system_role: "EMPLOYEE",
-      department: "HR",
-      created_at: "2024-01-18",
-      status: "ACTIVE",
-    },
-    {
-      user_id: "5",
-      user_name: "Hoang Van E",
-      email: "e@company.com",
-      system_role: "DEVELOPER",
-      department: "IT",
-      created_at: "2024-01-20",
-      status: "ACTIVE",
-    },
-  ];
-  const filteredUsers = users.filter((u) => {
-    const keywordMatch =
-      u.user_name.toLowerCase().includes(filter.keyword.toLowerCase()) ||
-      u.email.toLowerCase().includes(filter.keyword.toLowerCase());
-
-    const roleMatch = !filter.role || u.system_role === filter.role;
-    const deptMatch = !filter.department || u.department === filter.department;
-
-    return keywordMatch && roleMatch && deptMatch;
-  });
+    fetchDepartments();
+  }, []);
   return (
     <>
       <PageMeta title="User Management" description="User management page" />
@@ -242,9 +228,10 @@ export default function UserManagement() {
                       className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
                     >
                       <option value="">All</option>
-                      <option value="ADMIN">Admin</option>
-                      <option value="DEVELOPER">Developer</option>
-                      <option value="EMPLOYEE">Employee</option>
+                      <option value="ADMINISTRATOR">Administrator</option>
+                      <option value="BI">BI</option>
+                      <option value="MANAGER">Manager</option>
+                      <option value="STAFF">Staff</option>
                     </select>
                   </div>
 
@@ -260,9 +247,15 @@ export default function UserManagement() {
                       className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
                     >
                       <option value="">All</option>
-                      <option value="IT">IT</option>
-                      <option value="HR">HR</option>
-                      <option value="Finance">Finance</option>
+
+                      {departments.map((dept) => (
+                        <option
+                          key={dept.department_id}
+                          value={dept.department_id}
+                        >
+                          {dept.department_name}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -307,23 +300,23 @@ export default function UserManagement() {
                 {filteredUsers.map((u) => (
                   <tr key={u.user_id}>
                     <td className="px-4 py-4 font-medium text-theme-sm text-gray-700 dark:text-gray-400">
-                      {u.user_name}
+                      {u.username}
                     </td>
                     <td className="px-4 py-4 text-theme-sm text-gray-700 dark:text-gray-400">
                       {u.email}
                     </td>
                     <td className="px-4 py-4 text-theme-sm  text-gray-700 dark:text-gray-400">
-                      {u.system_role}
+                      {u.role}
                     </td>
                     <td className="px-4 py-4 text-theme-sm  text-gray-700 dark:text-gray-400">
-                      {u.department}
+                      {u.department?.department_name}
                     </td>
                     <td className="px-4 py-4 text-theme-sm  text-gray-700 dark:text-gray-400">
-                      {u.created_at}
+                      {new Date(u.createdAt).toLocaleDateString("vi-VN")}
                     </td>
                     <td className="px-4 py-4">
                       <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-theme-xs font-medium ${
+                        className={`inline-flex items-center rounded-full px-S2.5 py-0.5 text-theme-xs font-medium ${
                           u.status === "ACTIVE"
                             ? "bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500"
                             : "bg-error-50 text-error-600 dark:bg-error-500/15"

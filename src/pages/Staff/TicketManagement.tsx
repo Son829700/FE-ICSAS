@@ -1,18 +1,18 @@
+import { useEffect, useState } from "react";
+import API from "../../api";
 import { PlusIcon } from "lucide-react";
-import ComponentCard from "../components/common/ComponentCard";
-// import PageBreadcrumb from "../components/common/PageBreadCrumb";
-import PageMeta from "../components/common/PageMeta";
-import Badge from "../components/ui/badge/Badge";
-import Button from "../components/ui/button/Button";
+import ComponentCard from "../../components/common/ComponentCard";
+import PageMeta from "../../components/common/PageMeta";
+import Badge from "../../components/ui/badge/Badge";
+import Button from "../../components/ui/button/Button";
 import {
   Table,
   TableBody,
   TableCell,
   TableHeader,
   TableRow,
-} from "../components/ui/table";
-import { useState } from "react";
-import CreateTicketModal from "./AddTicketCard";
+} from "../../components/ui/table";
+import CreateTicketModal from "./../AddTicketCard";
 
 interface Ticket {
   id: string;
@@ -23,47 +23,38 @@ interface Ticket {
   };
   subject: string;
   createdAt: string;
-  status: "Solved" | "Pending";
+  status: "PENDING" | "APPROVED" | "REJECTED" | "SOLVED";
 }
 
-const tickets: Ticket[] = [
-  {
-    id: "#323534",
-    customer: {
-      name: "Lindsey Curtis",
-      email: "demoemail@gmail.com",
-      avatar: "/images/user/user-17.jpg",
-    },
-    subject: "Issue with Dashboard Login Access",
-    createdAt: "12 Feb, 2027",
-    status: "Solved",
-  },
-  {
-    id: "#323535",
-    customer: {
-      name: "Kaiya George",
-      email: "demoemail@gmail.com",
-      avatar: "/images/user/user-18.jpg",
-    },
-    subject: "Billing Information Not Updating",
-    createdAt: "13 Mar, 2027",
-    status: "Pending",
-  },
-  {
-    id: "#323536",
-    customer: {
-      name: "Carla George",
-      email: "demoemail@gmail.com",
-      avatar: "/images/user/user-21.jpg",
-    },
-    subject: "Unable to Export Invoice PDF",
-    createdAt: "20 Mar, 2027",
-    status: "Pending",
-  },
-];
 
 export default function SupportTicketPage() {
   const [isOpen, setIsOpen] = useState(false);
+  const [tickets, setTicket] = useState<Ticket[]>([]);
+
+  const totalTickets = tickets.length;
+  const pendingTickets = tickets.filter(
+    (ticket) => ticket.status === "PENDING",
+  ).length;
+  const rejectedTickets = tickets.filter(
+    (ticket) => ticket.status === "REJECTED",
+  ).length;
+  const solvedTickets = tickets.filter(
+    (ticket) => ticket.status === "SOLVED",
+  ).length;
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await API.get("/tickets");
+        setTicket(response.data.data);
+        console.log("API response:", response.data);
+      } catch (error) {
+        console.error("Fetch error in DashboardManagement:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   return (
     <div>
       <CreateTicketModal isOpen={isOpen} onClose={() => setIsOpen(false)} />
@@ -77,10 +68,10 @@ export default function SupportTicketPage() {
       {/* <PageBreadcrumb pageTitle="Support Ticket" /> */}
 
       {/* ===== STATS ===== */}
-      <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4">
         <ComponentCard title="Total Tickets">
           <h3 className="text-2xl font-bold text-gray-800 dark:text-white/90">
-            5,347
+            {totalTickets.toLocaleString()}
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             All support tickets
@@ -88,16 +79,28 @@ export default function SupportTicketPage() {
         </ComponentCard>
 
         <ComponentCard title="Pending Tickets">
-          <h3 className="text-2xl font-bold text-warning-500">1,230</h3>
+          <h3 className="text-2xl font-bold text-warning-500">
+            {pendingTickets.toLocaleString()}
+          </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Waiting for response
           </p>
         </ComponentCard>
 
         <ComponentCard title="Solved Tickets">
-          <h3 className="text-2xl font-bold text-success-500">4,117</h3>
+          <h3 className="text-2xl font-bold text-success-500">
+            {solvedTickets.toLocaleString()}
+          </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Successfully resolved
+          </p>
+        </ComponentCard>
+        <ComponentCard title="Rejected Tickets">
+          <h3 className="text-2xl font-bold text-error-500">
+            {rejectedTickets.toLocaleString()}
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Rejected
           </p>
         </ComponentCard>
       </div>
@@ -203,7 +206,7 @@ export default function SupportTicketPage() {
                   <TableCell className="px-5 py-4">
                     <Badge
                       size="sm"
-                      color={ticket.status === "Solved" ? "success" : "warning"}
+                      color={ticket.status === "SOLVED" ? "success" : "warning"}
                     >
                       {ticket.status}
                     </Badge>
