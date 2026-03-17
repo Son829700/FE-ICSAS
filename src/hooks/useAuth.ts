@@ -15,8 +15,14 @@ interface User {
   username: string;
   email: string;
   role: Role;
+  department: Department | null;
   createdAt: string;
-  department: string;
+  status: string;
+}
+export interface Department {
+  department_id: string;
+  department_name: string;
+  manager: User;
   status: string;
 }
 

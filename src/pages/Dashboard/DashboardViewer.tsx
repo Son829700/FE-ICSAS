@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import AppLoading from "../OtherPage/AppLoading";
 
 interface Props {
   url: string;
@@ -7,47 +8,64 @@ interface Props {
 
 export default function DashboardViewer({ url, category }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (category !== "ANALYTICS") return;
 
     const loadHtml = async () => {
-      const res = await fetch(url);
-      const html = await res.text();
+      try {
+        setLoading(true);
 
-      const iframe = iframeRef.current;
-      if (!iframe) return;
+        const res = await fetch(url);
+        const html = await res.text();
 
-      const doc = iframe.contentDocument || iframe.contentWindow?.document;
-      if (!doc) return;
+        const iframe = iframeRef.current;
+        if (!iframe) return;
 
-      doc.open();
-      doc.write(html);
-      doc.close();
+        const doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (!doc) return;
+
+        doc.open();
+        doc.write(html);
+        doc.close();
+
+        setLoading(false);
+      } catch (err) {
+        console.error(err);
+        setLoading(false);
+      }
     };
 
     loadHtml();
   }, [url, category]);
 
-  // 🔹 Analytics dashboard (HTML từ Supabase)
-  if (category === "ANALYTICS") {
-    return (
-      <iframe
-        ref={iframeRef}
-        style={{ width: "100%", height: "100vh", border: "none" }}
-        title="Analytics Dashboard"
-        allowFullScreen
-      />
-    );
-  }
-
-  // 🔹 Dashboard dạng URL bình thường
   return (
-    <iframe
-      src={url}
-      style={{ width: "100%", height: "100vh", border: "none" }}
-      title="Dashboard"
-      allowFullScreen
-    />
+    <div className="relative w-full h-[100vh]">
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white z-50">
+          <AppLoading />
+        </div>
+      )}
+
+      {category === "ANALYTICS" ? (
+        <iframe
+          key={url}
+          ref={iframeRef}
+          className="w-full h-full border-none"
+          title="Analytics Dashboard"
+          allowFullScreen
+        />
+      ) : (
+        <iframe
+          key={url}
+          src={url}
+          className="w-full h-full border-none"
+          title="Dashboard"
+          allowFullScreen
+          onLoad={() => setLoading(false)}
+        />
+      )}
+    </div>
   );
 }

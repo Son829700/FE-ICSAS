@@ -1,13 +1,9 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import PageMeta from "../../components/common/PageMeta";
 import API from "../../api";
-import { useAuthContext } from "../../context/AuthContext";
 import DashboardViewer from "../Dashboard/DashboardViewer";
-
-interface Group {
-  group_id: string;
-  group_name: string;
-}
+import { useAuthContext } from "../../context/AuthContext";
 
 interface Dashboard {
   dashboard_id: string;
@@ -16,118 +12,97 @@ interface Dashboard {
   category: string;
   status: string;
 }
+export interface Group {
+  group_id: string;
+  group_name: string;
+  description: string;
+  member: number;
+  groupType: string;
+  status: string;
+  createdAt: string;
+  department_name?: string;
+}
 
 export default function StaffHome() {
-  const [dashboards, setDashboards] = useState<Dashboard[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedDashboard, setSelectedDashboard] = useState<Dashboard | null>(
-    null,
-  );
-
+  const { id } = useParams();
   const { user } = useAuthContext();
 
+  const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+  const [hasDashboard, setHasDashboard] = useState<boolean | null>(null);
+
   useEffect(() => {
-    const fetchDashboards = async () => {
+    const checkDashboards = async () => {
       try {
-        if (!user?.user_id) return;
-
-        setLoading(true);
-
-        // 1️⃣ Lấy tất cả group của user
         const groupRes = await API.get(
-          `/groups/groups-by-user/${user.user_id}`,
+          `/groups/groups-by-user/${user?.user_id}`
         );
 
-        const groups: Group[] = groupRes.data.data;
-        console.log(groups);
+        const groups = groupRes.data.data;
+
         if (!groups.length) {
-          setDashboards([]);
+          setHasDashboard(false);
           return;
         }
 
-        // 2️⃣ Gọi API dashboard cho từng group
-        const dashboardPromises = groups.map((g) =>
-          API.get(`/dashboard/group-access/group/${g.group_id}`),
+        const dashboardPromises = groups.map((g: Group) =>
+          API.get(`/dashboard/group-access/group/${g.group_id}`)
         );
 
-        const dashboardResponses = await Promise.all(dashboardPromises);
+        const responses = await Promise.all(dashboardPromises);
 
-        // 3️⃣ Gom tất cả dashboard lại thành 1 mảng
-        const allDashboards: Dashboard[] = dashboardResponses
+        const dashboards = responses
           .flatMap((res) => res.data.data)
-          .filter((d) => d.status === "ACTIVE"); 
-        console.log(dashboardPromises);
-        // 4️⃣ Remove duplicate theo dashboard_id
-        const uniqueDashboardsMap = new Map<string, Dashboard>();
+          .filter((d: Dashboard) => d.status === "ACTIVE");
 
-        allDashboards.forEach((d) => {
-          if (!uniqueDashboardsMap.has(d.dashboard_id)) {
-            uniqueDashboardsMap.set(d.dashboard_id, d);
-          }
-        });
-
-        const uniqueDashboards = Array.from(uniqueDashboardsMap.values());
-
-        setDashboards(uniqueDashboards);
-
-        // 5️⃣ Set mặc định dashboard đầu tiên
-        if (uniqueDashboards.length > 0) {
-          setSelectedDashboard(uniqueDashboards[0]);
-        }
-      } catch (error) {
-        console.error("Fetch dashboards error:", error);
-      } finally {
-        setLoading(false);
+        setHasDashboard(dashboards.length > 0);
+      } catch (err) {
+        console.error(err);
       }
     };
 
-    fetchDashboards();
-  }, []);
+    if (user?.user_id) checkDashboards();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const res = await API.get(`/dashboard/${id}`);
+        setDashboard(res.data.data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    if (id) fetchDashboard();
+  }, [id]);
 
   return (
     <>
-      <PageMeta
-        title="Staff Home | Internal System"
-        description="Embedded analytics dashboard"
-      />
+      <PageMeta title="Dashboard" description="Embedded dashboard" />
 
-      <div className="space-y-4">
-        {/* ================= DROPDOWN ================= */}
-        {!loading && dashboards.length > 0 && (
-          <div className="flex justify-end">
-            <select
-              value={selectedDashboard?.dashboard_id}
-              onChange={(e) => {
-                const selected = dashboards.find(
-                  (d) => d.dashboard_id === e.target.value,
-                );
-                if (selected) setSelectedDashboard(selected);
-              }}
-              className="rounded-lg border px-4 py-2 text-sm"
-            >
-              {dashboards.map((d) => (
-                <option key={d.dashboard_id} value={d.dashboard_id}>
-                  {d.dashboard_name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+      {/* Không có dashboard */}
+      {hasDashboard === false && (
+        <div className="flex items-center justify-center h-[60vh] text-gray-500">
+          You don't have access to any dashboards.
+        </div>
+      )}
 
-        {/* ================= IFRAME ================= */}
-        {selectedDashboard ? (
-          <div className="relative w-full overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
-            <DashboardViewer
-              url={selectedDashboard.url_path}
-              category={selectedDashboard.category}
-            />
-          </div>
-        ) : (
-          <div className="text-center py-20 text-gray-400">
-            No dashboard assigned to your groups.
-          </div>
-        )}
-      </div>
+      {/* Có dashboard nhưng chưa chọn */}
+      {hasDashboard && !id && (
+        <div className="flex items-center justify-center h-[60vh] text-gray-500">
+          Please select a dashboard from the sidebar to view.
+        </div>
+      )}
+
+      {/* Có dashboard và đã chọn */}
+      {dashboard && (
+        <div className="relative w-full h-[calc(100vh-120px)] overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
+          <DashboardViewer
+            url={dashboard.url_path}
+            category={dashboard.category}
+          />
+        </div>
+      )}
     </>
   );
 }

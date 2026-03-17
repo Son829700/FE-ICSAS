@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import API from "../../api";
 import { useAuthContext } from "../../context/AuthContext";
 
-import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "../../icons";
+import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
@@ -29,6 +29,8 @@ export interface Department {
 }
 
 export default function SignInForm() {
+  const API_GOOGLE_LOGIN_URL = `${import.meta.env.VITE_API_URL}/oauth2/authorization/google`;
+
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   const { login, authLoading } = useAuthContext();
@@ -42,12 +44,16 @@ export default function SignInForm() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const navigate = useNavigate();
   const [showDepartmentModal, setShowDepartmentModal] = useState(false);
+  const handleGoogleLogin = () => {
+    window.location.href = API_GOOGLE_LOGIN_URL;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       const user = await login(username, password);
-            console.log("LOGIN USER:", user);
+      console.log("LOGIN USER:", user);
 
       if (!user) return;
       setCurrentUserId(user.user_id);
@@ -116,7 +122,10 @@ export default function SignInForm() {
           </div>
           <div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-1 sm:gap-5">
-              <button className="inline-flex items-center justify-center gap-3 py-3 text-sm font-normal text-gray-700 transition-colors bg-gray-100 rounded-lg px-7 hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10">
+              <button
+                onClick={handleGoogleLogin}
+                className="inline-flex items-center justify-center gap-3 py-3 text-sm font-normal text-gray-700 transition-colors bg-gray-100 rounded-lg px-7 hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10"
+              >
                 <svg
                   width="20"
                   height="20"

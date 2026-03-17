@@ -2,7 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import SignIn from "./pages/AuthPages/SignIn";
 // import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
-// import UserProfiles from "./pages/User/UserProfiles";
+import UserProfiles from "./pages/User/UserProfiles";
 import UserManagement from "./pages/Adminitrator/UserManagement";
 import DepartmentManagement from "./pages/Adminitrator/DepartmentManagement";
 
@@ -16,10 +16,13 @@ import AppLoading from "./pages/OtherPage/AppLoading";
 import TicketDetail from "./pages/Staff/TicketDetail";
 import DashboardManagement from "./pages/BI/DashboardManagement";
 import GroupDetail from "./pages/BI/GroupDetail";
-import TicketDetailManager from "./pages/Manager/TicketDetailManager";
 import TicketDetailBI from "./pages/BI/TicketDetailBI";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { Toaster } from "react-hot-toast";
+import StaffHome from "./pages/Staff/Home";
+import TicketDetailManager from "./pages/Manager/TicketDetailManager";
+import TicketListManager from "./pages/Manager/TicketManagement";
+
 export default function App() {
   return (
     <>
@@ -51,6 +54,17 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute
+                allowedRoles={["STAFF", "MANAGER", "BI", "ADMINISTRATOR"]}
+              >
+                <UserProfiles />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/dashboard/:id" element={<StaffHome />} />
 
           {/* ADMIN */}
           <Route
@@ -85,6 +99,15 @@ export default function App() {
             path="/manager/ticket"
             element={
               <ProtectedRoute allowedRoles={["MANAGER"]}>
+                <TicketListManager />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/manager/ticket/:id"
+            element={
+              <ProtectedRoute allowedRoles={["MANAGER"]}>
                 <TicketDetailManager />
               </ProtectedRoute>
             }
@@ -101,7 +124,7 @@ export default function App() {
           />
 
           <Route
-            path="/ticket-detail"
+            path="/ticket/:id"
             element={
               <ProtectedRoute allowedRoles={["STAFF"]}>
                 <TicketDetail />
