@@ -29,8 +29,7 @@ export interface Department {
 }
 
 export default function SignInForm() {
-  const API_GOOGLE_LOGIN_URL = `${import.meta.env.VITE_API_URL}/oauth2/authorization/google`;
-
+const API_GOOGLE_LOGIN_URL = "/oauth2/authorization/google";
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   const { login, authLoading } = useAuthContext();
