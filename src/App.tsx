@@ -22,6 +22,7 @@ import { Toaster } from "react-hot-toast";
 import StaffHome from "./pages/Staff/Home";
 import TicketDetailManager from "./pages/Manager/TicketDetailManager";
 import TicketListManager from "./pages/Manager/TicketManagement";
+import OAuth2RedirectHandler from "./components/auth/OAuth2RedirectHandler";
 
 export default function App() {
   return (
@@ -54,6 +55,8 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
           <Route
             path="/profile"
             element={

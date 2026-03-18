@@ -52,7 +52,6 @@ const API_GOOGLE_LOGIN_URL = "/oauth2/authorization/google";
 
     try {
       const user = await login(username, password);
-      console.log("LOGIN USER:", user);
 
       if (!user) return;
       setCurrentUserId(user.user_id);
