@@ -3,6 +3,14 @@
     {
       "source": "/proxy/:path*",
       "destination": "http://159.223.36.202:8080/:path*"
+    },
+    {
+      "source": "/oauth2/:path*",
+      "destination": "http://159.223.36.202:8080/oauth2/:path*"
+    },
+    {
+      "source": "/login/oauth2/:path*",
+      "destination": "http://159.223.36.202:8080/login/oauth2/:path*"
     }
   ]
 }
