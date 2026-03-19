@@ -173,8 +173,7 @@ export default function App() {
         </Route>
         {/* Auth Layout */}
         <Route path="/signin" element={<SignIn />} />
-        <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
-        {/* Fallback Route */}
+        <Route path="/oauth2-redirect" element={<OAuth2RedirectHandler />} />
         <Route path="/loading" element={<AppLoading />} />
 
         <Route path="*" element={<NotFound />} />
