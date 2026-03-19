@@ -56,7 +56,6 @@ export default function App() {
             }
           />
 
-          <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
           <Route
             path="/profile"
             element={
@@ -174,7 +173,7 @@ export default function App() {
         </Route>
         {/* Auth Layout */}
         <Route path="/signin" element={<SignIn />} />
-
+        <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
         {/* Fallback Route */}
         <Route path="/loading" element={<AppLoading />} />
 
