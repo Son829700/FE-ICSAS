@@ -1,0 +1,959 @@
+import { useEffect, useRef, useState } from "react";
+import API from "../../api";
+import { Filter, X, Loader2, Send, UserCog, CheckCheck } from "lucide-react";
+import PageMeta from "../../components/common/PageMeta";
+import Badge from "../../components/ui/badge/Badge";
+import Button from "../../components/ui/button/Button";
+import ComponentCard from "../../components/common/ComponentCard";
+import toast from "react-hot-toast";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableRow,
+} from "../../components/ui/table";
+
+/* =======================
+   CONSTANTS
+======================= */
+const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> =
+  {
+    DONE: "success",
+    RESOLVED: "success",
+    APPROVED: "info",
+    IN_PROGRESS: "info",
+    CREATED: "warning",
+    REJECTED: "error",
+    CANCELLED: "error",
+  };
+
+const PAGE_SIZE = 10;
+
+/* =======================
+   TYPES
+======================= */
+interface Department {
+  department_id: string;
+  department_name: string;
+  status: string;
+}
+
+interface User {
+  user_id: string;
+  username: string;
+  email: string;
+  role: string;
+  department: Department | null;
+  createdAt: string;
+  status: string;
+}
+
+interface Ticket {
+  ticket_id: string;
+  requester: User;
+  type: string;
+  description: string;
+  reason: string;
+  status:
+    | "CREATED"
+    | "APPROVED"
+    | "IN_PROGRESS"
+    | "RESOLVED"
+    | "REJECTED"
+    | "CANCELLED"
+    | "DONE";
+  assigned_staff: User | null;
+  approver: User | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface FilterValue {
+  status: string;
+}
+
+/* =======================
+   STEP BADGE
+======================= */
+const FLOW_STEPS = ["CREATED", "APPROVED", "RESOLVED", "DONE"];
+
+function FlowProgress({ status }: { status: string }) {
+  const isRejected = status === "REJECTED" || status === "CANCELLED";
+  const currentIdx = FLOW_STEPS.indexOf(status);
+
+  return (
+    <div className="flex items-center gap-1">
+      {FLOW_STEPS.map((step, idx) => {
+        const done = currentIdx > idx;
+        const active = currentIdx === idx;
+        return (
+          <div key={step} className="flex items-center gap-1">
+            <div
+              className={`h-2 w-2 rounded-full transition-all ${
+                isRejected
+                  ? "bg-gray-200 dark:bg-gray-700"
+                  : done
+                    ? "bg-success-500"
+                    : active
+                      ? "bg-brand-500 animate-pulse"
+                      : "bg-gray-200 dark:bg-gray-700"
+              }`}
+            />
+            {idx < FLOW_STEPS.length - 1 && (
+              <div
+                className={`h-px w-4 ${done && !isRejected ? "bg-success-500" : "bg-gray-200 dark:bg-gray-700"}`}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* =======================
+   DETAIL ROW
+======================= */
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <li className="flex gap-4 py-2.5">
+      <span className="w-1/3 shrink-0 text-sm text-gray-500 dark:text-gray-400">
+        {label}
+      </span>
+      <span className="w-2/3 text-sm text-gray-700 dark:text-gray-300">
+        {value}
+      </span>
+    </li>
+  );
+}
+
+/* =======================
+   TICKET DETAIL MODAL
+======================= */
+interface TicketDetailModalProps {
+  ticket: Ticket;
+  departments: Department[];
+  onClose: () => void;
+  onUpdated: (updated: Ticket) => void;
+}
+
+function TicketDetailModal({
+  ticket,
+  departments,
+  onClose,
+  onUpdated,
+}: TicketDetailModalProps) {
+  const [currentTicket, setCurrentTicket] = useState<Ticket>(ticket);
+  const [decision, setDecision] = useState<"APPROVED" | "REJECTED" | "">("");
+  const [grantRole, setGrantRole] = useState<string>(
+    ticket.requester?.role ?? "STAFF",
+  );
+  const [grantDept, setGrantDept] = useState<string>(
+    ticket.requester?.department?.department_id ?? "",
+  );
+  const [rejectReason, setRejectReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const isRejectWithoutReason = decision === "REJECTED" && !rejectReason.trim();
+
+  /* ---- Step 2: Admin approve / reject ---- */
+  const handleDecision = async () => {
+    if (!decision || isRejectWithoutReason) return;
+    try {
+      setSubmitting(true);
+
+      if (decision === "APPROVED") {
+        // Update role if changed
+        if (grantRole && grantRole !== currentTicket.requester?.role) {
+          await API.put(
+            `/users/role/${currentTicket.requester.user_id}/${grantRole}`,
+          );
+        }
+        // Update department if changed
+        if (
+          grantDept &&
+          grantDept !== currentTicket.requester?.department?.department_id
+        ) {
+          await API.put(
+            `/users/${currentTicket.requester.user_id}/department/${grantDept}`,
+          );
+        }
+        // Approve ticket
+        await API.post(`/tickets/${currentTicket.ticket_id}/status/APPROVED`);
+        toast.success("Ticket approved and user updated!");
+      } else {
+        await API.post(`/tickets/reject/${currentTicket.ticket_id}`, null, {
+          params: { reason: rejectReason.trim() },
+        });
+        toast.success("Ticket rejected.");
+      }
+
+      // Refetch this ticket
+      const res = await API.get(`/tickets/${currentTicket.ticket_id}`);
+      const updated: Ticket = res.data.data;
+      setCurrentTicket(updated);
+      onUpdated(updated);
+      setDecision("");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to process ticket.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  /* ---- Step 3: Admin marks RESOLVED ---- */
+  const handleResolved = async () => {
+    try {
+      setSubmitting(true);
+      await API.post(`/tickets/${currentTicket.ticket_id}/status/RESOLVED`);
+      toast.success(
+        "Ticket marked as resolved. Waiting for requester confirmation.",
+      );
+      const res = await API.get(`/tickets/${currentTicket.ticket_id}`);
+      const updated: Ticket = res.data.data;
+      setCurrentTicket(updated);
+      onUpdated(updated);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update ticket.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const isTerminal = ["REJECTED", "CANCELLED", "DONE"].includes(
+    currentTicket.status,
+  );
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-800 dark:bg-gray-900">
+        {/* Header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+              User Account Management Ticket
+            </h3>
+            <div className="mt-1.5 flex items-center gap-3">
+              <Badge
+                size="sm"
+                color={statusColorMap[currentTicket.status] ?? "info"}
+              >
+                {currentTicket.status.replace("_", " ")}
+              </Badge>
+              <FlowProgress status={currentTicket.status} />
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Ticket Info */}
+          <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+            <DetailRow
+              label="Ticket ID"
+              value={
+                <span className="font-mono text-xs">
+                  {currentTicket.ticket_id}
+                </span>
+              }
+            />
+            <DetailRow
+              label="Requester"
+              value={
+                <div className="flex flex-col">
+                  <span className="font-medium">
+                    {currentTicket.requester?.username}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {currentTicket.requester?.email}
+                  </span>
+                </div>
+              }
+            />
+            <DetailRow
+              label="Current Role"
+              value={
+                <span
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                    currentTicket.requester?.role === "STAFF"
+                      ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
+                      : currentTicket.requester?.role === "BI"
+                        ? "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400"
+                        : "bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400"
+                  }`}
+                >
+                  {currentTicket.requester?.role ?? "—"}
+                </span>
+              }
+            />
+            <DetailRow
+              label="Current Department"
+              value={
+                currentTicket.requester?.department?.department_name ?? (
+                  <span className="text-gray-400 italic">Not assigned</span>
+                )
+              }
+            />
+            <DetailRow
+              label="Request Description"
+              value={
+                <span className="whitespace-pre-wrap">
+                  {currentTicket.description}
+                </span>
+              }
+            />
+            <DetailRow
+              label="Created At"
+              value={new Date(currentTicket.createdAt).toLocaleString()}
+            />
+            {currentTicket.reason && (
+              <DetailRow
+                label="Reject Reason"
+                value={
+                  <span className="text-error-500 dark:text-error-400">
+                    {currentTicket.reason}
+                  </span>
+                }
+              />
+            )}
+          </ul>
+
+          {/* ===== STEP 2: CREATED → Admin approve/reject ===== */}
+          {currentTicket.status === "CREATED" && (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-700 dark:bg-white/[0.02] space-y-4">
+              <div className="flex items-center gap-2">
+                <UserCog className="size-5 text-brand-500" />
+                <h4 className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                  Step 2 — Review & Decide
+                </h4>
+              </div>
+
+              {/* Decision select */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                  Decision <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={decision}
+                  onChange={(e) => {
+                    setDecision(e.target.value as "APPROVED" | "REJECTED");
+                    setRejectReason("");
+                  }}
+                  className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                >
+                  <option value="">-- Select decision --</option>
+                  <option value="APPROVED">Approve & Update User</option>
+                  <option value="REJECTED">Reject</option>
+                </select>
+              </div>
+
+              {/* APPROVE: role + dept */}
+              {decision === "APPROVED" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Grant Role
+                      </label>
+                      <select
+                        value={grantRole}
+                        onChange={(e) => setGrantRole(e.target.value)}
+                        className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                      >
+                        <option value="STAFF">Staff</option>
+                        <option value="BI">BI</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Assign Department
+                      </label>
+                      <select
+                        value={grantDept}
+                        onChange={(e) => setGrantDept(e.target.value)}
+                        className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                      >
+                        <option value="">-- Keep current --</option>
+                        {departments.map((d) => (
+                          <option key={d.department_id} value={d.department_id}>
+                            {d.department_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Change summary */}
+                  <div className="rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 dark:border-brand-900 dark:bg-brand-900/20">
+                    <p className="text-xs font-semibold text-brand-600 dark:text-brand-400 mb-1.5">
+                      Changes to be applied:
+                    </p>
+                    <ul className="space-y-1 text-xs text-brand-500 dark:text-brand-300">
+                      <li>
+                        Role:{" "}
+                        <span className="font-medium line-through opacity-60">
+                          {currentTicket.requester?.role ?? "—"}
+                        </span>
+                        {" → "}
+                        <span className="font-semibold">{grantRole}</span>
+                      </li>
+                      <li>
+                        Department:{" "}
+                        <span className="font-medium line-through opacity-60">
+                          {currentTicket.requester?.department
+                            ?.department_name ?? "None"}
+                        </span>
+                        {" → "}
+                        <span className="font-semibold">
+                          {departments.find(
+                            (d) => d.department_id === grantDept,
+                          )?.department_name ?? "No change"}
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* REJECT: reason */}
+              {decision === "REJECTED" && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                    Reason for Rejection <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="Explain why this request is being rejected..."
+                    rows={4}
+                    className={`w-full rounded-lg border p-3 text-sm outline-none focus:ring-1 resize-none dark:bg-gray-800 dark:text-gray-300 transition ${
+                      !rejectReason.trim()
+                        ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700"
+                        : "border-gray-300 focus:border-brand-500 focus:ring-brand-500 dark:border-gray-700"
+                    }`}
+                  />
+                  {!rejectReason.trim() && (
+                    <p className="mt-1 text-xs text-red-500">
+                      Reason is required.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {decision && (
+                <button
+                  onClick={handleDecision}
+                  disabled={submitting || isRejectWithoutReason}
+                  className={`flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium text-white transition disabled:opacity-50 ${
+                    decision === "REJECTED"
+                      ? "bg-error-500 hover:bg-error-600"
+                      : "bg-brand-500 hover:bg-brand-600"
+                  }`}
+                >
+                  {submitting ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Send className="size-4" />
+                  )}
+                  {submitting
+                    ? "Processing..."
+                    : decision === "APPROVED"
+                      ? "Approve & Update User"
+                      : "Reject Ticket"}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* ===== STEP 3: APPROVED → Admin marks done ===== */}
+          {currentTicket.status === "APPROVED" && (
+            <div className="rounded-xl border border-success-200 bg-success-50 p-5 dark:border-success-800 dark:bg-success-900/10 space-y-3">
+              <div className="flex items-center gap-2">
+                <CheckCheck className="size-5 text-success-600 dark:text-success-400" />
+                <h4 className="text-sm font-semibold text-success-700 dark:text-success-400">
+                  Step 3 — Complete Task & Mark Resolved
+                </h4>
+              </div>
+              <p className="text-sm text-success-600 dark:text-success-300">
+                Ticket has been approved. Please complete the requested task
+                (e.g. create account, update info), then mark it as resolved for
+                the requester to confirm.
+              </p>
+              <button
+                onClick={handleResolved}
+                disabled={submitting}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-success-500 py-2.5 text-sm font-medium text-white hover:bg-success-600 disabled:opacity-50 transition"
+              >
+                {submitting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <CheckCheck className="size-4" />
+                )}
+                {submitting
+                  ? "Updating..."
+                  : "Mark as Resolved (Done with task)"}
+              </button>
+            </div>
+          )}
+
+          {/* ===== RESOLVED: waiting for requester ===== */}
+          {currentTicket.status === "RESOLVED" && (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 dark:border-blue-800 dark:bg-blue-900/10">
+              <p className="text-sm font-medium text-blue-700 dark:text-blue-400">
+                ⏳ Waiting for requester confirmation
+              </p>
+              <p className="mt-1 text-xs text-blue-500 dark:text-blue-300">
+                The requester needs to verify their account and confirm by
+                clicking "Done".
+              </p>
+            </div>
+          )}
+
+          {/* ===== TERMINAL ===== */}
+          {isTerminal && (
+            <div
+              className={`rounded-xl border px-4 py-3 ${
+                currentTicket.status === "DONE"
+                  ? "border-success-200 bg-success-50 dark:border-success-800 dark:bg-success-900/10"
+                  : "border-error-200 bg-error-50 dark:border-error-800 dark:bg-error-900/10"
+              }`}
+            >
+              <p
+                className={`text-sm font-medium ${
+                  currentTicket.status === "DONE"
+                    ? "text-success-700 dark:text-success-400"
+                    : "text-error-600 dark:text-error-400"
+                }`}
+              >
+                {currentTicket.status === "DONE"
+                  ? "✅ Ticket completed successfully."
+                  : currentTicket.status === "REJECTED"
+                    ? "❌ This ticket has been rejected."
+                    : "🚫 This ticket has been cancelled."}
+              </p>
+              {currentTicket.reason && (
+                <p className="mt-1 text-sm text-error-500 dark:text-error-300">
+                  Reason: {currentTicket.reason}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =======================
+   MAIN PAGE
+======================= */
+export default function AdminTicketManagement() {
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [filter, setFilter] = useState<FilterValue>({ status: "" });
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setFilterOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const fetchTickets = async () => {
+    try {
+      const res = await API.get("/tickets/type/TYPE2");
+      setTickets(
+        res.data.data.sort(
+          (a: Ticket, b: Ticket) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        ),
+      );
+    } catch (error) {
+      console.error("Fetch error:", error);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await API.get("/departments");
+      setDepartments(res.data.data);
+    } catch (error) {
+      console.error("Fetch departments error:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchTickets();
+    fetchDepartments();
+  }, []);
+
+  const handleTicketUpdated = (updated: Ticket) => {
+    setTickets((prev) =>
+      prev.map((t) => (t.ticket_id === updated.ticket_id ? updated : t)),
+    );
+    if (selectedTicket?.ticket_id === updated.ticket_id) {
+      setSelectedTicket(updated);
+    }
+  };
+
+  const filteredTickets = tickets.filter(
+    (t) => !filter.status || t.status === filter.status,
+  );
+  const totalPages = Math.max(1, Math.ceil(filteredTickets.length / PAGE_SIZE));
+  const paginatedTickets = filteredTickets.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE,
+  );
+
+  const totalTickets = tickets.length;
+  const awaitingTickets = tickets.filter((t) => t.status === "CREATED").length;
+  const approvedTickets = tickets.filter((t) => t.status === "APPROVED").length;
+  const resolvedTickets = tickets.filter((t) => t.status === "RESOLVED").length;
+  const doneTickets = tickets.filter((t) => t.status === "DONE").length;
+
+  return (
+    <div>
+      {selectedTicket && (
+        <TicketDetailModal
+          ticket={selectedTicket}
+          departments={departments}
+          onClose={() => setSelectedTicket(null)}
+          onUpdated={handleTicketUpdated}
+        />
+      )}
+
+      <PageMeta
+        title="Ticket Management | Admin"
+        description="Admin user account ticket management"
+      />
+
+      {/* STATS */}
+      <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4">
+        <ComponentCard title="Total Requests">
+          <h3 className="text-2xl font-bold text-gray-800 dark:text-white/90">
+            {totalTickets}
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            User account tickets
+          </p>
+        </ComponentCard>
+        <ComponentCard title="Awaiting Review">
+          <h3 className="text-2xl font-bold text-warning-500">
+            {awaitingTickets}
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Need your decision
+          </p>
+        </ComponentCard>
+        <ComponentCard title="In Progress">
+          <h3 className="text-2xl font-bold text-brand-500">
+            {approvedTickets + resolvedTickets}
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Approved or awaiting confirm
+          </p>
+        </ComponentCard>
+        <ComponentCard title="Completed">
+          <h3 className="text-2xl font-bold text-success-500">{doneTickets}</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Done tickets
+          </p>
+        </ComponentCard>
+      </div>
+
+      {/* TABLE */}
+      <div className="rounded-2xl border border-gray-200 bg-white pt-4 dark:border-white/[0.05] dark:bg-white/[0.03]">
+        <div className="mb-4 flex flex-col gap-3 px-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+              User Account Management Tickets
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Review and process account creation & update requests
+            </p>
+          </div>
+
+          {/* Filter by status only */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setFilterOpen(!filterOpen)}
+              className="flex h-11 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+            >
+              <Filter size={18} />
+              Filter
+              {filter.status && (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-xs text-white">
+                  1
+                </span>
+              )}
+            </button>
+
+            {filterOpen && (
+              <div className="absolute right-0 z-20 mt-2 w-52 rounded-xl border bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                  Status
+                </label>
+                <select
+                  value={filter.status}
+                  onChange={(e) => {
+                    setFilter({ status: e.target.value });
+                    setPage(1);
+                  }}
+                  className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                >
+                  <option value="">All</option>
+                  <option value="CREATED">Created</option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="RESOLVED">Resolved</option>
+                  <option value="DONE">Done</option>
+                  <option value="REJECTED">Rejected</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={() => {
+                      setFilter({ status: "" });
+                      setPage(1);
+                      setFilterOpen(false);
+                    }}
+                    className="h-9 flex-1 rounded-lg border border-gray-300 text-xs font-medium text-gray-600 hover:bg-gray-50 transition"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    onClick={() => setFilterOpen(false)}
+                    className="h-9 flex-1 rounded-lg bg-brand-500 text-xs font-medium text-white hover:bg-brand-600 transition"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* TABLE CONTENT */}
+        <div className="max-w-full overflow-x-auto px-5 sm:px-6">
+          <Table>
+            <TableHeader className="border-y border-gray-100 dark:border-white/[0.05]">
+              <TableRow>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Requester
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Description
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Current Role
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Department
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Progress
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Status
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Created
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-right text-theme-xs text-gray-500"
+                >
+                  Action
+                </TableCell>
+              </TableRow>
+            </TableHeader>
+
+            <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+              {paginatedTickets.length === 0 ? (
+                <TableRow>
+                  <TableCell className="px-4 py-10 text-center text-sm text-gray-400">
+                    No tickets found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedTickets.map((ticket) => {
+                  const needsAction = ticket.status === "CREATED";
+                  const waitingConfirm = ticket.status === "RESOLVED";
+                  return (
+                    <TableRow
+                      key={ticket.ticket_id}
+                      className={
+                        needsAction
+                          ? "bg-warning-50/40 dark:bg-warning-500/5"
+                          : waitingConfirm
+                            ? "bg-blue-50/30 dark:bg-blue-500/5"
+                            : ""
+                      }
+                    >
+                      <TableCell className="px-4 py-4">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-800 dark:text-white">
+                            {ticket.requester?.username}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {ticket.requester?.email}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-4 text-sm text-gray-500 max-w-[180px] truncate">
+                        {ticket.description}
+                      </TableCell>
+                      <TableCell className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
+                        {ticket.requester?.role ?? "—"}
+                      </TableCell>
+                      <TableCell className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
+                        {ticket.requester?.department?.department_name ?? (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="px-4 py-4">
+                        <FlowProgress status={ticket.status} />
+                      </TableCell>
+                      <TableCell className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            size="sm"
+                            color={statusColorMap[ticket.status] ?? "info"}
+                          >
+                            {ticket.status.replace("_", " ")}
+                          </Badge>
+                          {needsAction && (
+                            <span className="flex h-2 w-2 rounded-full bg-warning-500 animate-pulse" />
+                          )}
+                          {waitingConfirm && (
+                            <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-4 text-sm text-gray-500">
+                        {new Date(ticket.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="px-4 py-4 text-right">
+                        <Button
+                          size="sm"
+                          variant={needsAction ? "primary" : "outline"}
+                          onClick={() => setSelectedTicket(ticket)}
+                        >
+                          {needsAction
+                            ? "Review"
+                            : ticket.status === "APPROVED"
+                              ? "Mark Done"
+                              : "View"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* PAGINATION */}
+        <div className="border-t border-gray-200 px-6 py-4 dark:border-white/[0.05]">
+          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Showing{" "}
+              <span className="font-medium text-gray-700 dark:text-gray-300">
+                {filteredTickets.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}
+              </span>{" "}
+              –{" "}
+              <span className="font-medium text-gray-700 dark:text-gray-300">
+                {Math.min(page * PAGE_SIZE, filteredTickets.length)}
+              </span>{" "}
+              of{" "}
+              <span className="font-medium text-gray-700 dark:text-gray-300">
+                {filteredTickets.length}
+              </span>{" "}
+              tickets
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="rounded-lg bg-white px-4 py-2.5 text-sm ring-1 ring-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:bg-gray-800 dark:ring-gray-700"
+              >
+                Previous
+              </button>
+              <ul className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (p) => (
+                    <li key={p}>
+                      <button
+                        onClick={() => setPage(p)}
+                        className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${
+                          page === p
+                            ? "bg-brand-500 text-white"
+                            : "text-gray-700 hover:bg-brand-500/10 dark:text-gray-400"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    </li>
+                  ),
+                )}
+              </ul>
+              <button
+                disabled={page === totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="rounded-lg bg-white px-4 py-2.5 text-sm ring-1 ring-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:bg-gray-800 dark:ring-gray-700"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

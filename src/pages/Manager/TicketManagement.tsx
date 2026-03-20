@@ -1,14 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import API from "../../api";
-import { Filter } from "lucide-react";
+import { Filter, PlusIcon } from "lucide-react";
 import PageMeta from "../../components/common/PageMeta";
 import Badge from "../../components/ui/badge/Badge";
 import Button from "../../components/ui/button/Button";
 import {
-  Table, TableBody, TableCell, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableRow,
 } from "../../components/ui/table";
 import { useNavigate } from "react-router-dom";
 import ComponentCard from "../../components/common/ComponentCard";
+import { useAuthContext } from "../../context/AuthContext";
+import toast from "react-hot-toast";
+import CreateTicketModal from "./../AddTicketCard";
 
 /* =======================
    CONSTANTS
@@ -19,13 +26,16 @@ const TICKET_TYPE_MAP: Record<string, string> = {
   TYPE3: "Dashboard Development Request",
 };
 
-const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> = {
-  SOLVED: "success",
-  APPROVED: "success",
-  PENDING: "warning",
-  CREATED: "info",
-  REJECTED: "error",
-};
+const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> =
+  {
+    DONE: "success",
+    RESOLVED: "success",
+    APPROVED: "info",
+    IN_PROGRESS: "info",
+    CREATED: "warning",
+    REJECTED: "error",
+    CANCELLED: "error",
+  };
 
 const PAGE_SIZE = 10;
 
@@ -53,7 +63,14 @@ interface Ticket {
   requester: User;
   type: string;
   description: string;
-  status: "CREATED" | "PENDING" | "APPROVED" | "REJECTED" | "SOLVED";
+  status:
+    | "CREATED"
+    | "APPROVED"
+    | "IN_PROGRESS"
+    | "RESOLVED"
+    | "REJECTED"
+    | "CANCELLED"
+    | "DONE";
   assigned_staff: User | null;
   approver: User | null;
   createdAt: string;
@@ -70,16 +87,21 @@ interface FilterValue {
 ======================= */
 export default function TicketListManager() {
   const navigate = useNavigate();
+  const { user } = useAuthContext();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [filter, setFilter] = useState<FilterValue>({ type: "", status: "" });
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
+  const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   /* Close filter on outside click */
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setFilterOpen(false);
       }
     };
@@ -87,28 +109,58 @@ export default function TicketListManager() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  /* Fetch tickets từ cả 2 API: approver + requester */
+  const fetchTickets = async () => {
+    if (!user?.user_id) return;
+    try {
+      const [approverRes, requesterRes] = await Promise.all([
+        API.get(`/tickets/approver/${user.user_id}`),
+        API.get(`/tickets/requester/${user.user_id}`),
+      ]);
+
+      const approverTickets: Ticket[] = approverRes.data.data ?? [];
+      const requesterTickets: Ticket[] = requesterRes.data.data ?? [];
+
+      // Merge + dedup theo ticket_id
+      const merged = [...approverTickets, ...requesterTickets].reduce(
+        (acc, ticket) => {
+          if (!acc.find((t) => t.ticket_id === ticket.ticket_id)) {
+            acc.push(ticket);
+          }
+          return acc;
+        },
+        [] as Ticket[],
+      );
+
+      setTickets(
+        merged.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        ),
+      );
+    } catch (error) {
+      console.error("Fetch error:", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchTickets = async () => {
-      try {
-        const res = await API.get("/tickets");
-        setTickets(
-          res.data.data.sort(
-            (a: Ticket, b: Ticket) =>
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-          ),
-        );
-      } catch (error) {
-        console.error("Fetch error:", error);
-      }
-    };
     fetchTickets();
-  }, []);
+  }, [user?.user_id]);
+
+  const handleSuccess = () => {
+    fetchTickets();
+    toast.success("Ticket created successfully!", {
+      duration: 3000,
+      position: "top-right",
+    });
+  };
 
   const handleFilterChange = (updated: Partial<FilterValue>) => {
     setFilter((prev) => ({ ...prev, ...updated }));
     setPage(1);
   };
 
+  /* Filter + Pagination */
   const filteredTickets = tickets.filter((t) => {
     const typeMatch = !filter.type || t.type === filter.type;
     const statusMatch = !filter.status || t.status === filter.status;
@@ -121,14 +173,31 @@ export default function TicketListManager() {
     page * PAGE_SIZE,
   );
 
+  /* Stats */
   const totalTickets = tickets.length;
-  const pendingTickets = tickets.filter((t) => t.status === "PENDING").length;
-  const approvedTickets = tickets.filter((t) => t.status === "APPROVED").length;
-  const rejectedTickets = tickets.filter((t) => t.status === "REJECTED").length;
+  const activeTickets = tickets.filter((t) =>
+    ["CREATED", "APPROVED", "IN_PROGRESS"].includes(t.status),
+  ).length;
+  const resolvedTickets = tickets.filter((t) =>
+    ["RESOLVED", "DONE"].includes(t.status),
+  ).length;
+  const closedTickets = tickets.filter((t) =>
+    ["REJECTED", "CANCELLED"].includes(t.status),
+  ).length;
 
   return (
     <div>
-      <PageMeta title="Ticket Management | Manager" description="Review and approve tickets" />
+      <PageMeta
+        title="Ticket Management | Manager"
+        description="Review and approve tickets"
+      />
+
+      <CreateTicketModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        onSuccess={handleSuccess}
+        allowedTypes={["TYPE2"]}
+      />
 
       {/* STATS */}
       <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -136,25 +205,66 @@ export default function TicketListManager() {
           <h3 className="text-2xl font-bold text-gray-800 dark:text-white/90">
             {totalTickets.toLocaleString()}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">All tickets</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            All tickets
+          </p>
         </ComponentCard>
-        <ComponentCard title="Pending Approval">
-          <h3 className="text-2xl font-bold text-warning-500">
-            {pendingTickets.toLocaleString()}
+
+        <ComponentCard title="In Progress">
+          <h3 className="text-2xl font-bold text-brand-500">
+            {activeTickets.toLocaleString()}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Awaiting your review</p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {(["CREATED", "APPROVED", "IN_PROGRESS"] as const).map((s) => (
+              <span
+                key={s}
+                className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
+              >
+                {s.replace("_", " ")}
+                <span className="ml-1 font-bold">
+                  {tickets.filter((t) => t.status === s).length}
+                </span>
+              </span>
+            ))}
+          </div>
         </ComponentCard>
-        <ComponentCard title="Approved">
+
+        <ComponentCard title="Completed">
           <h3 className="text-2xl font-bold text-success-500">
-            {approvedTickets.toLocaleString()}
+            {resolvedTickets.toLocaleString()}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Approved by you</p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {(["RESOLVED", "DONE"] as const).map((s) => (
+              <span
+                key={s}
+                className="inline-flex items-center rounded-full bg-success-50 px-2 py-0.5 text-xs font-medium text-success-600 dark:bg-success-500/10 dark:text-success-400"
+              >
+                {s}
+                <span className="ml-1 font-bold">
+                  {tickets.filter((t) => t.status === s).length}
+                </span>
+              </span>
+            ))}
+          </div>
         </ComponentCard>
-        <ComponentCard title="Rejected">
+
+        <ComponentCard title="Closed">
           <h3 className="text-2xl font-bold text-error-500">
-            {rejectedTickets.toLocaleString()}
+            {closedTickets.toLocaleString()}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Rejected tickets</p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {(["REJECTED", "CANCELLED"] as const).map((s) => (
+              <span
+                key={s}
+                className="inline-flex items-center rounded-full bg-error-50 px-2 py-0.5 text-xs font-medium text-error-600 dark:bg-error-500/10 dark:text-error-400"
+              >
+                {s}
+                <span className="ml-1 font-bold">
+                  {tickets.filter((t) => t.status === s).length}
+                </span>
+              </span>
+            ))}
+          </div>
         </ComponentCard>
       </div>
 
@@ -164,80 +274,103 @@ export default function TicketListManager() {
         <div className="mb-4 flex flex-col gap-3 px-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-              Tickets Pending Review
+              My Tickets
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Review and approve or reject tickets from your department
+              Tickets you submitted or need to review
             </p>
           </div>
 
-          {/* Filter */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setFilterOpen(!filterOpen)}
-              className="flex h-11 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]"
-            >
-              <Filter size={18} />
-              Filter
-              {(filter.type || filter.status) && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-xs text-white">
-                  {[filter.type, filter.status].filter(Boolean).length}
-                </span>
+          <div className="flex gap-3">
+            {/* Filter */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setFilterOpen(!filterOpen)}
+                className="flex h-11 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]"
+              >
+                <Filter size={18} />
+                Filter
+                {(filter.type || filter.status) && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-xs text-white">
+                    {[filter.type, filter.status].filter(Boolean).length}
+                  </span>
+                )}
+              </button>
+
+              {filterOpen && (
+                <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                  <div className="mb-4">
+                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Ticket Type
+                    </label>
+                    <select
+                      value={filter.type}
+                      onChange={(e) =>
+                        handleFilterChange({ type: e.target.value })
+                      }
+                      className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    >
+                      <option value="">All</option>
+                      <option value="TYPE1">Dashboard Access Request</option>
+                      <option value="TYPE2">User Account Management</option>
+                      <option value="TYPE3">
+                        Dashboard Development Request
+                      </option>
+                    </select>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Status
+                    </label>
+                    <select
+                      value={filter.status}
+                      onChange={(e) =>
+                        handleFilterChange({ status: e.target.value })
+                      }
+                      className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    >
+                      <option value="">All</option>
+                      <option value="CREATED">Created</option>
+                      <option value="APPROVED">Approved</option>
+                      <option value="IN_PROGRESS">In Progress</option>
+                      <option value="RESOLVED">Resolved</option>
+                      <option value="DONE">Done</option>
+                      <option value="REJECTED">Rejected</option>
+                      <option value="CANCELLED">Cancelled</option>
+                    </select>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        handleFilterChange({ type: "", status: "" });
+                        setFilterOpen(false);
+                      }}
+                      className="h-10 flex-1 rounded-lg border border-gray-300 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 transition"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      onClick={() => setFilterOpen(false)}
+                      className="h-10 flex-1 rounded-lg bg-brand-500 text-sm font-medium text-white hover:bg-brand-600 transition"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
               )}
-            </button>
+            </div>
 
-            {filterOpen && (
-              <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-                <div className="mb-4">
-                  <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                    Ticket Type
-                  </label>
-                  <select
-                    value={filter.type}
-                    onChange={(e) => handleFilterChange({ type: e.target.value })}
-                    className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                  >
-                    <option value="">All</option>
-                    <option value="TYPE1">Dashboard Access Request</option>
-                    <option value="TYPE2">User Account Management</option>
-                    <option value="TYPE3">Dashboard Development Request</option>
-                  </select>
-                </div>
-
-                <div className="mb-4">
-                  <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                    Status
-                  </label>
-                  <select
-                    value={filter.status}
-                    onChange={(e) => handleFilterChange({ status: e.target.value })}
-                    className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                  >
-                    <option value="">All</option>
-                    <option value="CREATED">Created</option>
-                    <option value="PENDING">Pending</option>
-                    <option value="APPROVED">Approved</option>
-                    <option value="REJECTED">Rejected</option>
-                    <option value="SOLVED">Solved</option>
-                  </select>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => { handleFilterChange({ type: "", status: "" }); setFilterOpen(false); }}
-                    className="h-10 flex-1 rounded-lg border border-gray-300 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 transition"
-                  >
-                    Reset
-                  </button>
-                  <button
-                    onClick={() => setFilterOpen(false)}
-                    className="h-10 flex-1 rounded-lg bg-brand-500 text-sm font-medium text-white hover:bg-brand-600 transition"
-                  >
-                    Apply
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* Create Ticket — chỉ TYPE2 */}
+            <Button
+              size="md"
+              variant="primary"
+              startIcon={<PlusIcon className="size-5 text-white" />}
+              onClick={() => setIsOpen(true)}
+            >
+              Create Ticket
+            </Button>
           </div>
         </div>
 
@@ -246,13 +379,48 @@ export default function TicketListManager() {
           <Table>
             <TableHeader className="border-y border-gray-100 dark:border-white/[0.05]">
               <TableRow>
-                <TableCell isHeader className="px-4 py-3 text-start text-theme-xs text-gray-500">Requested By</TableCell>
-                <TableCell isHeader className="px-4 py-3 text-start text-theme-xs text-gray-500">Type</TableCell>
-                <TableCell isHeader className="px-4 py-3 text-start text-theme-xs text-gray-500">Description</TableCell>
-                <TableCell isHeader className="px-4 py-3 text-start text-theme-xs text-gray-500">Department</TableCell>
-                <TableCell isHeader className="px-4 py-3 text-start text-theme-xs text-gray-500">Created</TableCell>
-                <TableCell isHeader className="px-4 py-3 text-start text-theme-xs text-gray-500">Status</TableCell>
-                <TableCell isHeader className="px-4 py-3 text-right text-theme-xs text-gray-500">Action</TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Requested By
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Type
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Description
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Department
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Created
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Status
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-right text-theme-xs text-gray-500"
+                >
+                  Action
+                </TableCell>
               </TableRow>
             </TableHeader>
 
@@ -264,44 +432,83 @@ export default function TicketListManager() {
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedTickets.map((ticket) => (
-                  <TableRow key={ticket.ticket_id}>
-                    <TableCell className="px-4 py-4">
-                      <div className="flex flex-col">
-                        <span className="font-medium text-gray-800 dark:text-white">
-                          {ticket.requester?.username}
-                        </span>
-                        <span className="text-xs text-gray-500">{ticket.requester?.email}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
-                      {TICKET_TYPE_MAP[ticket.type] ?? ticket.type}
-                    </TableCell>
-                    <TableCell className="px-4 py-4 text-sm text-gray-500 max-w-[180px] truncate">
-                      {ticket.description}
-                    </TableCell>
-                    <TableCell className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
-                      {ticket.requester?.department?.department_name ?? "—"}
-                    </TableCell>
-                    <TableCell className="px-4 py-4 text-sm text-gray-500">
-                      {new Date(ticket.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="px-4 py-4">
-                      <Badge size="sm" color={statusColorMap[ticket.status] ?? "info"}>
-                        {ticket.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="px-4 py-4 text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => navigate(`/manager/ticket/${ticket.ticket_id}`)}
-                      >
-                        Review
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                paginatedTickets.map((ticket) => {
+                  const isOwnTicket =
+                    ticket.requester?.user_id === user?.user_id;
+                  const needsReview =
+                    !isOwnTicket && ticket.status === "CREATED";
+
+                  return (
+                    <TableRow
+                      key={ticket.ticket_id}
+                      className={
+                        needsReview
+                          ? "bg-warning-50/40 dark:bg-warning-500/5"
+                          : ""
+                      }
+                    >
+                      <TableCell className="px-4 py-4">
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-gray-800 dark:text-white">
+                              {ticket.requester?.username}
+                            </span>
+                            {isOwnTicket && (
+                              <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                                You
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs text-gray-500">
+                            {ticket.requester?.email}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
+                        {TICKET_TYPE_MAP[ticket.type] ?? ticket.type}
+                      </TableCell>
+                      <TableCell className="px-4 py-4 text-sm text-gray-500 max-w-[180px] truncate">
+                        {ticket.description}
+                      </TableCell>
+                      <TableCell className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
+                        {ticket.requester?.department?.department_name ?? "—"}
+                      </TableCell>
+                      <TableCell className="px-4 py-4 text-sm text-gray-500">
+                        {new Date(ticket.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            size="sm"
+                            color={statusColorMap[ticket.status] ?? "info"}
+                          >
+                            {ticket.status.replace("_", " ")}
+                          </Badge>
+                          {needsReview && (
+                            <span className="flex h-2 w-2 rounded-full bg-warning-500 animate-pulse" />
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-4 text-right">
+                        <Button
+                          size="sm"
+                          variant={needsReview ? "primary" : "outline"}
+                          onClick={() => {
+                            if (isOwnTicket) {
+                              // Ticket do mình tạo → xem tiến trình như staff
+                              navigate(`/ticket/${ticket.ticket_id}`);
+                            } else {
+                              // Ticket cần review → trang approve của manager
+                              navigate(`/manager/ticket/${ticket.ticket_id}`);
+                            }
+                          }}
+                        >
+                          {needsReview ? "Review" : "View"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -335,18 +542,22 @@ export default function TicketListManager() {
                 Previous
               </button>
               <ul className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <li key={p}>
-                    <button
-                      onClick={() => setPage(p)}
-                      className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${
-                        page === p ? "bg-brand-500 text-white" : "text-gray-700 hover:bg-brand-500/10 dark:text-gray-400"
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  </li>
-                ))}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (p) => (
+                    <li key={p}>
+                      <button
+                        onClick={() => setPage(p)}
+                        className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${
+                          page === p
+                            ? "bg-brand-500 text-white"
+                            : "text-gray-700 hover:bg-brand-500/10 dark:text-gray-400"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    </li>
+                  ),
+                )}
               </ul>
               <button
                 disabled={page === totalPages}

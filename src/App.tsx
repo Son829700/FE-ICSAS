@@ -23,6 +23,8 @@ import StaffHome from "./pages/Staff/Home";
 import TicketDetailManager from "./pages/Manager/TicketDetailManager";
 import TicketListManager from "./pages/Manager/TicketManagement";
 import OAuth2RedirectHandler from "./components/auth/OAuth2RedirectHandler";
+import TicketListBI from "./pages/BI/TicketManagement";
+import AdminTicketManagement from "./pages/Adminitrator/TicketManagement";
 
 export default function App() {
   return (
@@ -66,7 +68,16 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/dashboard/:id" element={<StaffHome />} />
+          <Route
+            path="/dashboard/:id"
+            element={
+              <ProtectedRoute
+                allowedRoles={["STAFF", "MANAGER", "BI", "ADMINISTRATOR"]}
+              >
+                <StaffHome />
+              </ProtectedRoute>
+            }
+          />
 
           {/* ADMIN */}
           <Route
@@ -92,6 +103,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={["ADMINISTRATOR"]}>
                 <LogsList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/ticket"
+            element={
+              <ProtectedRoute allowedRoles={["ADMINISTRATOR"]}>
+                <AdminTicketManagement />
               </ProtectedRoute>
             }
           />
@@ -128,7 +147,7 @@ export default function App() {
           <Route
             path="/ticket/:id"
             element={
-              <ProtectedRoute allowedRoles={["STAFF"]}>
+              <ProtectedRoute allowedRoles={["STAFF", "MANAGER"]}>
                 <TicketDetail />
               </ProtectedRoute>
             }
@@ -140,6 +159,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={["BI"]}>
                 <GroupManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/BI/ticket"
+            element={
+              <ProtectedRoute allowedRoles={["BI"]}>
+                <TicketListBI />
               </ProtectedRoute>
             }
           />

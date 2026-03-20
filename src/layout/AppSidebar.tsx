@@ -1,14 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import {
-  BoxCubeIcon,
-  ChevronDownIcon,
-  GridIcon,
-  HorizontaLDots,
-  PieChartIcon,
-  PlugInIcon,
-  TableIcon,
-} from "../icons";
+import { GridIcon, HorizontaLDots, ChevronDownIcon, TableIcon } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import { useAuthContext } from "../context/AuthContext";
 import {
@@ -29,6 +21,7 @@ interface Dashboard {
   category: string;
   status: string;
 }
+
 export interface Group {
   group_id: string;
   group_name: string;
@@ -39,6 +32,7 @@ export interface Group {
   createdAt: string;
   department_name?: string;
 }
+
 type NavItem = {
   name: string;
   icon: React.ReactNode;
@@ -47,7 +41,6 @@ type NavItem = {
   subItems?: {
     name: string;
     path: string;
-    roles?: string[];
     pro?: boolean;
     new?: boolean;
   }[];
@@ -80,6 +73,12 @@ const navItems: NavItem[] = [
     path: "/log",
     roles: ["ADMINISTRATOR"],
   },
+  {
+    name: "Ticket Management",
+    icon: <Ticket />,
+    path: "/admin/ticket",
+    roles: ["ADMINISTRATOR"],
+  },
 
   // MANAGER
   {
@@ -89,16 +88,13 @@ const navItems: NavItem[] = [
     roles: ["MANAGER"],
   },
 
-  // STAFF 
+  // STAFF
   {
     name: "My Ticket",
     icon: <Ticket />,
     path: "/ticket",
     roles: ["STAFF"],
   },
-
-  // STAFF
-
 
   // BI
   {
@@ -114,41 +110,10 @@ const navItems: NavItem[] = [
     roles: ["BI"],
   },
   {
-    name: "Ticket Detail",
+    name: "Ticket Management",
     icon: <TableIcon />,
-    path: "/BI/ticket-detail",
+    path: "/BI/ticket",
     roles: ["BI"],
-  },
-];
-
-const othersItems: NavItem[] = [
-  {
-    icon: <PieChartIcon />,
-    name: "Charts",
-    subItems: [
-      { name: "Line Chart", path: "/line-chart", pro: false },
-      { name: "Bar Chart", path: "/bar-chart", pro: false },
-    ],
-  },
-  {
-    icon: <BoxCubeIcon />,
-    name: "UI Elements",
-    subItems: [
-      { name: "Alerts", path: "/alerts", pro: false },
-      { name: "Avatar", path: "/avatars", pro: false },
-      { name: "Badge", path: "/badge", pro: false },
-      { name: "Buttons", path: "/buttons", pro: false },
-      { name: "Images", path: "/images", pro: false },
-      { name: "Videos", path: "/videos", pro: false },
-    ],
-  },
-  {
-    icon: <PlugInIcon />,
-    name: "Authentication",
-    subItems: [
-      { name: "Sign In", path: "/signin", pro: false },
-      { name: "Sign Up", path: "/signup", pro: false },
-    ],
   },
 ];
 
@@ -157,84 +122,101 @@ const AppSidebar: React.FC = () => {
   const location = useLocation();
   const { user } = useAuthContext();
   const role = user?.role;
-  const [staffDashboards, setStaffDashboards] = useState<Dashboard[]>([]);
+  const [userDashboards, setUserDashboards] = useState<Dashboard[]>([]);
+
   const filterMenuByRole = (items: NavItem[]) => {
     if (!role) return [];
-
     return items.filter((item) => {
       if (!item.roles) return true;
       return item.roles.includes(role);
     });
   };
+
+  /* Fetch dashboards cho STAFF, MANAGER, BI */
   useEffect(() => {
     const fetchDashboards = async () => {
       try {
-        if (role !== "STAFF" || !user?.user_id) return;
+        if (!user?.user_id) return;
 
-        const groupRes = await API.get(
-          `/groups/groups-by-user/${user.user_id}`,
-        );
+        if (role === "STAFF") {
+          // Lấy dashboards qua group của user
+          const groupRes = await API.get(
+            `/groups/groups-by-user/${user.user_id}`,
+          );
+          const groups: Group[] = groupRes.data.data;
 
-        const groups = groupRes.data.data;
-
-        if (!groups.length) {
-          setStaffDashboards([]);
-          return;
-        }
-
-        const dashboardPromises = groups.map((g: Group) =>
-          API.get(`/dashboard/group-access/group/${g.group_id}`),
-        );
-
-        const responses = await Promise.all(dashboardPromises);
-
-        const allDashboards = responses
-          .flatMap((res) => res.data.data)
-          .filter((d: Dashboard) => d.status === "ACTIVE");
-
-        const map = new Map<string, Dashboard>();
-
-        allDashboards.forEach((d: Dashboard) => {
-          if (!map.has(d.dashboard_id)) {
-            map.set(d.dashboard_id, d);
+          if (!groups.length) {
+            setUserDashboards([]);
+            return;
           }
-        });
 
-        setStaffDashboards(Array.from(map.values()));
+          const responses = await Promise.all(
+            groups.map((g) =>
+              API.get(`/dashboard/group-access/group/${g.group_id}`),
+            ),
+          );
+
+          const allDashboards = responses
+            .flatMap((res) => res.data.data)
+            .filter((d: Dashboard) => d.status === "ACTIVE");
+
+          // Dedup
+          const map = new Map<string, Dashboard>();
+          allDashboards.forEach((d: Dashboard) => {
+            if (!map.has(d.dashboard_id)) map.set(d.dashboard_id, d);
+          });
+
+          setUserDashboards(Array.from(map.values()));
+        } else if (
+          role === "BI" ||
+          role === "ADMINISTRATOR" ||
+          role === "MANAGER"
+        ) {
+          // BI lấy tất cả dashboard active
+          const res = await API.get("/dashboard");
+          const all: Dashboard[] = res.data.data;
+          setUserDashboards(all.filter((d) => d.status === "ACTIVE"));
+        }
       } catch (err) {
-        console.error(err);
+        console.error("Fetch dashboards error:", err);
       }
     };
 
     fetchDashboards();
   }, [user, role]);
+
+  /* Build dynamic nav items */
   const dynamicNavItems = navItems.map((item) => {
-    if (item.name === "Dashboard" && role === "STAFF") {
-      // có dashboard
-      if (staffDashboards.length > 0) {
+    if (
+      item.name === "Dashboard" &&
+      (role === "STAFF" ||
+        role === "MANAGER" ||
+        role === "BI" ||
+        role === "ADMINISTRATOR")
+    ) {
+      if (userDashboards.length > 0) {
         return {
           ...item,
-          subItems: staffDashboards.map((d) => ({
+          path: undefined, // không navigate khi có subItems
+          subItems: userDashboards.map((d) => ({
             name: d.dashboard_name,
             path: `/dashboard/${d.dashboard_id}`,
           })),
         };
       }
-
-      // không có dashboard
       return {
         ...item,
         subItems: undefined,
-        path: "/", // vẫn click được
+        path: "/",
       };
     }
-
     return item;
   });
 
   const filteredNavItems = filterMenuByRole(dynamicNavItems);
+
   const [openSubmenu, setOpenSubmenu] = useState<{
-    type: "main" | "others";
+    type: "main";
     index: number;
   } | null>(null);
   const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
@@ -242,7 +224,6 @@ const AppSidebar: React.FC = () => {
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // const isActive = (path: string) => location.pathname === path;
   const isActive = useCallback(
     (path: string) => location.pathname === path,
     [location.pathname],
@@ -250,62 +231,47 @@ const AppSidebar: React.FC = () => {
 
   useEffect(() => {
     let submenuMatched = false;
-    ["main", "others"].forEach((menuType) => {
-      const items = menuType === "main" ? filteredNavItems : othersItems;
-      items.forEach((nav, index) => {
-        if (nav.subItems) {
-          nav.subItems.forEach((subItem) => {
-            if (isActive(subItem.path)) {
-              setOpenSubmenu({
-                type: menuType as "main" | "others",
-                index,
-              });
-              submenuMatched = true;
-            }
-          });
-        }
-      });
+    filteredNavItems.forEach((nav, index) => {
+      if (nav.subItems) {
+        nav.subItems.forEach((subItem) => {
+          if (isActive(subItem.path)) {
+            setOpenSubmenu({ type: "main", index });
+            submenuMatched = true;
+          }
+        });
+      }
     });
-
-    if (!submenuMatched) {
-      setOpenSubmenu(null);
-    }
+    if (!submenuMatched) setOpenSubmenu(null);
   }, [location, isActive]);
 
   useEffect(() => {
     if (openSubmenu !== null) {
       const key = `${openSubmenu.type}-${openSubmenu.index}`;
       if (subMenuRefs.current[key]) {
-        setSubMenuHeight((prevHeights) => ({
-          ...prevHeights,
+        setSubMenuHeight((prev) => ({
+          ...prev,
           [key]: subMenuRefs.current[key]?.scrollHeight || 0,
         }));
       }
     }
   }, [openSubmenu]);
 
-  const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
-    setOpenSubmenu((prevOpenSubmenu) => {
-      if (
-        prevOpenSubmenu &&
-        prevOpenSubmenu.type === menuType &&
-        prevOpenSubmenu.index === index
-      ) {
-        return null;
-      }
-      return { type: menuType, index };
+  const handleSubmenuToggle = (index: number) => {
+    setOpenSubmenu((prev) => {
+      if (prev && prev.type === "main" && prev.index === index) return null;
+      return { type: "main", index };
     });
   };
 
-  const renderMenuItems = (items: NavItem[], menuType: "main" | "others") => (
+  const renderMenuItems = (items: NavItem[]) => (
     <ul className="flex flex-col gap-4">
       {items.map((nav, index) => (
         <li key={nav.name}>
           {nav.subItems ? (
             <button
-              onClick={() => handleSubmenuToggle(index, menuType)}
+              onClick={() => handleSubmenuToggle(index)}
               className={`menu-item group ${
-                openSubmenu?.type === menuType && openSubmenu?.index === index
+                openSubmenu?.index === index
                   ? "menu-item-active"
                   : "menu-item-inactive"
               } cursor-pointer ${
@@ -315,8 +281,8 @@ const AppSidebar: React.FC = () => {
               }`}
             >
               <span
-                className={`menu-item-icon-size  ${
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
+                className={`menu-item-icon-size ${
+                  openSubmenu?.index === index
                     ? "menu-item-icon-active"
                     : "menu-item-icon-inactive"
                 }`}
@@ -329,7 +295,6 @@ const AppSidebar: React.FC = () => {
               {(isExpanded || isHovered || isMobileOpen) && (
                 <ChevronDownIcon
                   className={`ml-auto w-5 h-5 transition-transform duration-200 ${
-                    openSubmenu?.type === menuType &&
                     openSubmenu?.index === index
                       ? "rotate-180 text-brand-500"
                       : ""
@@ -360,16 +325,17 @@ const AppSidebar: React.FC = () => {
               </Link>
             )
           )}
+
           {nav.subItems && (isExpanded || isHovered || isMobileOpen) && (
             <div
               ref={(el) => {
-                subMenuRefs.current[`${menuType}-${index}`] = el;
+                subMenuRefs.current[`main-${index}`] = el;
               }}
               className="overflow-hidden transition-all duration-300"
               style={{
                 height:
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? `${subMenuHeight[`${menuType}-${index}`]}px`
+                  openSubmenu?.index === index
+                    ? `${subMenuHeight[`main-${index}`]}px`
                     : "0px",
               }}
             >
@@ -385,30 +351,6 @@ const AppSidebar: React.FC = () => {
                       }`}
                     >
                       {subItem.name}
-                      <span className="flex items-center gap-1 ml-auto">
-                        {subItem.new && (
-                          <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
-                                ? "menu-dropdown-badge-active"
-                                : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}
-                          >
-                            new
-                          </span>
-                        )}
-                        {subItem.pro && (
-                          <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
-                                ? "menu-dropdown-badge-active"
-                                : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}
-                          >
-                            pro
-                          </span>
-                        )}
-                      </span>
                     </Link>
                   </li>
                 ))}
@@ -423,22 +365,14 @@ const AppSidebar: React.FC = () => {
   return (
     <aside
       className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
-        ${
-          isExpanded || isMobileOpen
-            ? "w-[290px]"
-            : isHovered
-              ? "w-[290px]"
-              : "w-[90px]"
-        }
+        ${isExpanded || isMobileOpen ? "w-[290px]" : isHovered ? "w-[290px]" : "w-[90px]"}
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div
-        className={`py-8 flex ${
-          !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
-        }`}
+        className={`py-8 flex ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"}`}
       >
         <Link to="/">
           {isExpanded || isHovered || isMobileOpen ? (
@@ -468,6 +402,7 @@ const AppSidebar: React.FC = () => {
           )}
         </Link>
       </div>
+
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
@@ -485,7 +420,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots className="size-6" />
                 )}
               </h2>
-              {renderMenuItems(filteredNavItems, "main")}
+              {renderMenuItems(filteredNavItems)}
             </div>
           </div>
         </nav>

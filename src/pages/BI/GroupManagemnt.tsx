@@ -40,7 +40,7 @@ export default function GroupManagement() {
   const [formData, setFormData] = useState({
     group_name: "",
     description: "",
-    groupType: "",
+    groupType: "TRADITIONAL",
   });
   const handleChange = (
     e: React.ChangeEvent<
@@ -60,38 +60,36 @@ export default function GroupManagement() {
       setFormData({
         group_name: editingGroup.group_name,
         description: editingGroup.description,
-        groupType: editingGroup.groupType,
+        groupType: editingGroup.groupType ?? "TRADITIONAL",
       });
     } else {
       setFormData({
         group_name: "",
         description: "",
-        groupType: "",
+        groupType: "TRADITIONAL", // ← default, không để ""
       });
     }
   }, [editingGroup]);
   const handleSubmit = async () => {
-    console.log(formData);
-
     try {
       if (editingGroup) {
-        // UPDATE
+        // PUT dùng groupType (camelCase)
         await API.put(`/groups/${editingGroup.group_id}`, {
           group_name: formData.group_name,
           description: formData.description,
           groupType: formData.groupType,
         });
       } else {
-        // CREATE
+        // POST dùng group_type (snake_case)
         await API.post("/groups", {
           group_name: formData.group_name,
           description: formData.description,
-          groupType: formData.groupType,
+          group_type: formData.groupType,
         });
       }
+
       const response = await API.get("/groups");
       setGroup(response.data.data);
-
       handleCloseModal();
     } catch (error) {
       console.error("Submit error:", error);
@@ -102,6 +100,7 @@ export default function GroupManagement() {
       try {
         const response = await API.get("/groups");
         setGroup(response.data.data);
+        console.log(response);
       } catch (error) {
         console.error("Fetch error in GroupManagement:", error);
       }
@@ -246,12 +245,18 @@ export default function GroupManagement() {
                     <TableCell className="px-5 py-4 text-gray-600 dark:text-gray-400">
                       <span
                         className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          group.groupType === "Traditional"
+                          group.groupType === "TRADITIONAL"
                             ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-500"
-                            : "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-500"
+                            : group.groupType === "ADHOC"
+                              ? "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-500"
+                              : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
                         }`}
                       >
-                        {group.groupType}
+                        {group.groupType === "TRADITIONAL"
+                          ? "Traditional"
+                          : group.groupType === "ADHOC"
+                            ? "Adhoc"
+                            : "—"}
                       </span>
                     </TableCell>
                     <TableCell className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">

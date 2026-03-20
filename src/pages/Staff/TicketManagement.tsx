@@ -6,6 +6,7 @@ import PageMeta from "../../components/common/PageMeta";
 import Badge from "../../components/ui/badge/Badge";
 import Button from "../../components/ui/button/Button";
 import toast from "react-hot-toast";
+import { useAuthContext } from "../../context/AuthContext";
 import {
   Table,
   TableBody,
@@ -26,13 +27,14 @@ const TICKET_TYPE_MAP: Record<string, string> = {
 
 const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> =
   {
-    SOLVED: "success",
-    APPROVED: "success",
-    PENDING: "warning",
-    CREATED: "info",
+    DONE: "success",
+    RESOLVED: "success",
+    APPROVED: "info",
+    IN_PROGRESS: "info",
+    CREATED: "warning",
     REJECTED: "error",
+    CANCELLED: "error",
   };
-
 const PAGE_SIZE = 10;
 
 /* =======================
@@ -61,7 +63,7 @@ interface Ticket {
   description: string;
   dashboard_id: string;
   reason: string;
-  status: "CREATED" | "PENDING" | "APPROVED" | "REJECTED" | "SOLVED";
+  status: "CREATED" | "APPROVED" | "IN_PROGRESS" | "RESOLVED" | "REJECTED" | "CANCELLED" | "DONE"; 
   assigned_staff: User;
   approver: User;
   createdAt: string;
@@ -77,6 +79,7 @@ interface FilterValue {
    MAIN PAGE
 ======================= */
 export default function SupportTicketPage() {
+  const { user } = useAuthContext();
   const [isOpen, setIsOpen] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [filter, setFilter] = useState<FilterValue>({ type: "", status: "" });
@@ -99,8 +102,10 @@ export default function SupportTicketPage() {
   }, []);
 
   const fetchTickets = async () => {
+    if (!user?.user_id) return;
+
     try {
-      const response = await API.get("/tickets");
+      const response = await API.get(`/tickets/requester/${user.user_id}`);
       setTickets(
         response.data.data.sort(
           (a: Ticket, b: Ticket) =>
@@ -112,6 +117,7 @@ export default function SupportTicketPage() {
     }
   };
 
+  // Cập nhật useEffect — thêm user?.user_id vào dependency
   useEffect(() => {
     fetchTickets();
   }, []);
@@ -144,9 +150,15 @@ export default function SupportTicketPage() {
 
   /* Stats */
   const totalTickets = tickets.length;
-  const pendingTickets = tickets.filter((t) => t.status === "PENDING").length;
-  const rejectedTickets = tickets.filter((t) => t.status === "REJECTED").length;
-  const solvedTickets = tickets.filter((t) => t.status === "SOLVED").length;
+  const activeTickets = tickets.filter((t) =>
+    ["CREATED", "APPROVED", "IN_PROGRESS"].includes(t.status),
+  ).length;
+  const resolvedTickets = tickets.filter((t) =>
+    ["RESOLVED", "DONE"].includes(t.status),
+  ).length;
+  const closedTickets = tickets.filter((t) =>
+    ["REJECTED", "CANCELLED"].includes(t.status),
+  ).length;
 
   return (
     <div>
@@ -160,7 +172,6 @@ export default function SupportTicketPage() {
         title="Support Ticket | Admin Dashboard"
         description="Manage and track customer support tickets"
       />
-
       {/* STATS */}
       <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4">
         <ComponentCard title="Total Tickets">
@@ -168,30 +179,65 @@ export default function SupportTicketPage() {
             {totalTickets.toLocaleString()}
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            All support tickets
+            All your tickets
           </p>
         </ComponentCard>
-        <ComponentCard title="Pending Tickets">
-          <h3 className="text-2xl font-bold text-warning-500">
-            {pendingTickets.toLocaleString()}
+
+        <ComponentCard title="In Progress">
+          <h3 className="text-2xl font-bold text-brand-500">
+            {activeTickets.toLocaleString()}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Waiting for response
-          </p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {(["CREATED", "APPROVED", "IN_PROGRESS"] as const).map((s) => (
+              <span
+                key={s}
+                className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
+              >
+                {s.replace("_", " ")}
+                <span className="ml-1 font-bold">
+                  {tickets.filter((t) => t.status === s).length}
+                </span>
+              </span>
+            ))}
+          </div>
         </ComponentCard>
-        <ComponentCard title="Solved Tickets">
+
+        <ComponentCard title="Completed">
           <h3 className="text-2xl font-bold text-success-500">
-            {solvedTickets.toLocaleString()}
+            {resolvedTickets.toLocaleString()}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Successfully resolved
-          </p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {(["RESOLVED", "DONE"] as const).map((s) => (
+              <span
+                key={s}
+                className="inline-flex items-center rounded-full bg-success-50 px-2 py-0.5 text-xs font-medium text-success-600 dark:bg-success-500/10 dark:text-success-400"
+              >
+                {s}
+                <span className="ml-1 font-bold">
+                  {tickets.filter((t) => t.status === s).length}
+                </span>
+              </span>
+            ))}
+          </div>
         </ComponentCard>
-        <ComponentCard title="Rejected Tickets">
+
+        <ComponentCard title="Closed">
           <h3 className="text-2xl font-bold text-error-500">
-            {rejectedTickets.toLocaleString()}
+            {closedTickets.toLocaleString()}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Rejected</p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {(["REJECTED", "CANCELLED"] as const).map((s) => (
+              <span
+                key={s}
+                className="inline-flex items-center rounded-full bg-error-50 px-2 py-0.5 text-xs font-medium text-error-600 dark:bg-error-500/10 dark:text-error-400"
+              >
+                {s}
+                <span className="ml-1 font-bold">
+                  {tickets.filter((t) => t.status === s).length}
+                </span>
+              </span>
+            ))}
+          </div>
         </ComponentCard>
       </div>
 
@@ -259,10 +305,12 @@ export default function SupportTicketPage() {
                     >
                       <option value="">All</option>
                       <option value="CREATED">Created</option>
-                      <option value="PENDING">Pending</option>
                       <option value="APPROVED">Approved</option>
+                      <option value="IN_PROGRESS">In Progress</option>
+                      <option value="RESOLVED">Resolved</option>
+                      <option value="DONE">Done</option>
                       <option value="REJECTED">Rejected</option>
-                      <option value="SOLVED">Solved</option>
+                      <option value="CANCELLED">Cancelled</option>
                     </select>
                   </div>
 
@@ -428,7 +476,7 @@ export default function SupportTicketPage() {
             </button>
             <span className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-400">
               Page {page} of {totalPages}
-            </span> 
+            </span>
             <button
               disabled={page === totalPages}
               onClick={() => setPage((p) => p + 1)}
