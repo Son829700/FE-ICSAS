@@ -23,13 +23,15 @@ const TICKET_TYPE_MAP: Record<string, string> = {
   TYPE3: "Dashboard Development Request",
 };
 
-const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> = {
-  SOLVED: "success",
-  APPROVED: "success",
-  PENDING: "warning",
-  CREATED: "info",
-  REJECTED: "error",
-};
+const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> =
+  {
+    DONE: "success",
+    RESOLVED: "success",
+    APPROVED: "info",
+    IN_PROGRESS: "warning",
+    REJECTED: "error",
+    CANCELLED: "error",
+  };
 
 const PAGE_SIZE = 10;
 
@@ -59,7 +61,14 @@ interface Ticket {
   description: string;
   dashboard_id: string;
   reason: string;
-  status: "CREATED" | "PENDING" | "APPROVED" | "REJECTED" | "SOLVED";
+  status:
+    | "CREATED"
+    | "APPROVED"
+    | "IN_PROGRESS"
+    | "RESOLVED"
+    | "REJECTED"
+    | "CANCELLED"
+    | "DONE";
   assigned_staff: User | null;
   approver: User | null;
   createdAt: string;
@@ -81,17 +90,34 @@ interface TicketDetailModalProps {
   onAssigned: () => void;
 }
 
-function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
   return (
     <li className="flex gap-4 py-2.5">
-      <span className="w-1/3 text-sm text-gray-500 dark:text-gray-400 shrink-0">{label}</span>
-      <span className="w-2/3 text-sm text-gray-700 dark:text-gray-300">{value}</span>
+      <span className="w-1/3 text-sm text-gray-500 dark:text-gray-400 shrink-0">
+        {label}
+      </span>
+      <span className="w-2/3 text-sm text-gray-700 dark:text-gray-300">
+        {value}
+      </span>
     </li>
   );
 }
 
-function TicketDetailModal({ ticket, biStaffs, onClose, onAssigned }: TicketDetailModalProps) {
-  const [selectedStaff, setSelectedStaff] = useState(ticket.assigned_staff?.user_id ?? "");
+function TicketDetailModal({
+  ticket,
+  biStaffs,
+  onClose,
+  onAssigned,
+}: TicketDetailModalProps) {
+  const [selectedStaff, setSelectedStaff] = useState(
+    ticket.assigned_staff?.user_id ?? "",
+  );
   const [assigning, setAssigning] = useState(false);
 
   const isAlreadyAssigned = !!ticket.assigned_staff;
@@ -136,14 +162,20 @@ function TicketDetailModal({ ticket, biStaffs, onClose, onAssigned }: TicketDeta
           <ul className="divide-y divide-gray-100 dark:divide-gray-800">
             <DetailRow
               label="Ticket ID"
-              value={<span className="font-mono text-xs">{ticket.ticket_id}</span>}
+              value={
+                <span className="font-mono text-xs">{ticket.ticket_id}</span>
+              }
             />
             <DetailRow
               label="Requester"
               value={
                 <div className="flex flex-col">
-                  <span className="font-medium">{ticket.requester?.username}</span>
-                  <span className="text-xs text-gray-500">{ticket.requester?.email}</span>
+                  <span className="font-medium">
+                    {ticket.requester?.username}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {ticket.requester?.email}
+                  </span>
                 </div>
               }
             />
@@ -153,16 +185,27 @@ function TicketDetailModal({ ticket, biStaffs, onClose, onAssigned }: TicketDeta
             />
             <DetailRow
               label="Ticket Type"
-              value={<span className="font-medium">{TICKET_TYPE_MAP[ticket.type] ?? ticket.type}</span>}
+              value={
+                <span className="font-medium">
+                  {TICKET_TYPE_MAP[ticket.type] ?? ticket.type}
+                </span>
+              }
             />
             <DetailRow
               label="Description"
-              value={<span className="whitespace-pre-wrap">{ticket.description}</span>}
+              value={
+                <span className="whitespace-pre-wrap">
+                  {ticket.description}
+                </span>
+              }
             />
             <DetailRow
               label="Status"
               value={
-                <Badge size="sm" color={statusColorMap[ticket.status] ?? "info"}>
+                <Badge
+                  size="sm"
+                  color={statusColorMap[ticket.status] ?? "info"}
+                >
                   {ticket.status}
                 </Badge>
               }
@@ -172,8 +215,12 @@ function TicketDetailModal({ ticket, biStaffs, onClose, onAssigned }: TicketDeta
               value={
                 ticket.approver ? (
                   <div className="flex flex-col">
-                    <span className="font-medium">{ticket.approver.username}</span>
-                    <span className="text-xs text-gray-500">{ticket.approver.email}</span>
+                    <span className="font-medium">
+                      {ticket.approver.username}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {ticket.approver.email}
+                    </span>
                   </div>
                 ) : (
                   <span className="text-gray-400">Not approved yet</span>
@@ -185,15 +232,19 @@ function TicketDetailModal({ ticket, biStaffs, onClose, onAssigned }: TicketDeta
               value={
                 ticket.assigned_staff ? (
                   <div className="flex flex-col">
-                    <span className="font-medium">{ticket.assigned_staff.username}</span>
-                    <span className="text-xs text-gray-500">{ticket.assigned_staff.email}</span>
+                    <span className="font-medium">
+                      {ticket.assigned_staff.username}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {ticket.assigned_staff.email}
+                    </span>
                   </div>
                 ) : (
                   <span className="text-gray-400">Not assigned yet</span>
                 )
               }
             />
-          
+
             {ticket.reason && (
               <DetailRow
                 label="Reason"
@@ -203,42 +254,91 @@ function TicketDetailModal({ ticket, biStaffs, onClose, onAssigned }: TicketDeta
           </ul>
 
           {/* Assign Section */}
+          {/* Assign Section */}
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-white/[0.02]">
             <h4 className="mb-3 text-sm font-semibold text-gray-800 dark:text-white/90">
               Assign to BI Staff
             </h4>
 
-            {ticket.status === "REJECTED" || ticket.status === "SOLVED" ? (
-              <p className="text-sm text-gray-400">
-                This ticket is <span className="font-medium">{ticket.status.toLowerCase()}</span> and cannot be reassigned.
-              </p>
+            {["RESOLVED", "DONE", "REJECTED", "CANCELLED"].includes(
+              ticket.status,
+            ) ? (
+              <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  This ticket is{" "}
+                  <span className="font-medium text-gray-700 dark:text-gray-300">
+                    {ticket.status.replace("_", " ").toLowerCase()}
+                  </span>{" "}
+                  and cannot be reassigned.
+                </p>
+                {ticket.assigned_staff && (
+                  <p className="mt-1 text-xs text-gray-400">
+                    Final assignee:{" "}
+                    <span className="font-medium">
+                      {ticket.assigned_staff.username}
+                    </span>{" "}
+                    — {ticket.assigned_staff.email}
+                  </p>
+                )}
+              </div>
             ) : (
-              <div className="flex gap-3">
-                <select
-                  value={selectedStaff}
-                  onChange={(e) => setSelectedStaff(e.target.value)}
-                  className="flex-1 h-10 rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                >
-                  <option value="">-- Select BI Staff --</option>
-                  {biStaffs.map((s) => (
-                    <option key={s.user_id} value={s.user_id}>
-                      {s.username} — {s.email}
-                    </option>
-                  ))}
-                </select>
+              <div className="space-y-3">
+                {/* Hint nếu đã assign */}
+                {ticket.assigned_staff && (
+                  <div className="rounded-lg border border-brand-100 bg-brand-50 px-3 py-2 dark:border-brand-900 dark:bg-brand-900/20">
+                    <p className="text-xs text-brand-600 dark:text-brand-400">
+                      Currently assigned to{" "}
+                      <span className="font-semibold">
+                        {ticket.assigned_staff.username}
+                      </span>{" "}
+                      — you can reassign to a different BI staff.
+                    </p>
+                  </div>
+                )}
 
-                <button
-                  onClick={handleAssign}
-                  disabled={!selectedStaff || assigning}
-                  className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 transition"
-                >
-                  {assigning ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Send className="size-4" />
+                <div className="flex gap-3">
+                  <select
+                    value={selectedStaff}
+                    onChange={(e) => setSelectedStaff(e.target.value)}
+                    className="flex-1 h-10 rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                  >
+                    <option value="">-- Select BI Staff --</option>
+                    {biStaffs.map((s) => (
+                      <option key={s.user_id} value={s.user_id}>
+                        {s.username} — {s.email}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    onClick={handleAssign}
+                    disabled={
+                      !selectedStaff ||
+                      assigning ||
+                      selectedStaff === ticket.assigned_staff?.user_id
+                    }
+                    className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 transition"
+                  >
+                    {assigning ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Send className="size-4" />
+                    )}
+                    {assigning
+                      ? "Assigning..."
+                      : isAlreadyAssigned
+                        ? "Reassign"
+                        : "Assign"}
+                  </button>
+                </div>
+
+                {selectedStaff === ticket.assigned_staff?.user_id &&
+                  selectedStaff && (
+                    <p className="text-xs text-gray-400">
+                      This staff is already assigned. Select a different one to
+                      reassign.
+                    </p>
                   )}
-                  {assigning ? "Assigning..." : isAlreadyAssigned ? "Reassign" : "Assign"}
-                </button>
               </div>
             )}
           </div>
@@ -263,7 +363,10 @@ export default function TicketListBI() {
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setFilterOpen(false);
       }
     };
@@ -273,13 +376,32 @@ export default function TicketListBI() {
 
   const fetchTickets = async () => {
     try {
-      const response = await API.get("/tickets");
-      setTickets(
-        response.data.data.sort(
-          (a: Ticket, b: Ticket) =>
+      const [type1Res, type3Res] = await Promise.all([
+        API.get("/tickets/type/TYPE1"),
+        API.get("/tickets/type/TYPE3"),
+      ]);
+
+      const type1: Ticket[] = type1Res.data.data ?? [];
+      const type3: Ticket[] = type3Res.data.data ?? [];
+
+      // Lấy tất cả ticket đã qua APPROVED (bao gồm cả đã assign, in progress, resolved, done)
+      const merged = [...type1, ...type3]
+        .filter((t) =>
+          [
+            "APPROVED",
+            "IN_PROGRESS",
+            "RESOLVED",
+            "DONE",
+            "REJECTED",
+            "CANCELLED",
+          ].includes(t.status),
+        )
+        .sort(
+          (a, b) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        ),
-      );
+        );
+
+      setTickets(merged);
     } catch (error) {
       console.error("Fetch error:", error);
     }
@@ -318,10 +440,13 @@ export default function TicketListBI() {
   );
 
   const totalTickets = tickets.length;
-  const pendingTickets = tickets.filter((t) => t.status === "PENDING").length;
-  const rejectedTickets = tickets.filter((t) => t.status === "REJECTED").length;
-  const solvedTickets = tickets.filter((t) => t.status === "SOLVED").length;
-
+  const approvedTickets = tickets.filter((t) => t.status === "APPROVED").length;
+  const inProgressTickets = tickets.filter(
+    (t) => t.status === "IN_PROGRESS",
+  ).length;
+  const solvedTickets = tickets.filter(
+    (t) => t.status === "RESOLVED" || t.status === "DONE",
+  ).length;
   return (
     <div>
       {/* TICKET DETAIL MODAL */}
@@ -345,25 +470,31 @@ export default function TicketListBI() {
           <h3 className="text-2xl font-bold text-gray-800 dark:text-white/90">
             {totalTickets.toLocaleString()}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">All support tickets</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Approved tickets
+          </p>
         </ComponentCard>
-        <ComponentCard title="Pending Tickets">
-          <h3 className="text-2xl font-bold text-warning-500">
-            {pendingTickets.toLocaleString()}
+        <ComponentCard title="Approved">
+          <h3 className="text-2xl font-bold text-info-500">
+            {approvedTickets.toLocaleString()}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Waiting for response</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Awaiting assignment
+          </p>
         </ComponentCard>
-        <ComponentCard title="Solved Tickets">
+        <ComponentCard title="In Progress">
+          <h3 className="text-2xl font-bold text-warning-500">
+            {inProgressTickets.toLocaleString()}
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Being processed
+          </p>
+        </ComponentCard>
+        <ComponentCard title="Solved">
           <h3 className="text-2xl font-bold text-success-500">
             {solvedTickets.toLocaleString()}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Successfully resolved</p>
-        </ComponentCard>
-        <ComponentCard title="Rejected Tickets">
-          <h3 className="text-2xl font-bold text-error-500">
-            {rejectedTickets.toLocaleString()}
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Rejected</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Completed</p>
         </ComponentCard>
       </div>
 
@@ -394,7 +525,6 @@ export default function TicketListBI() {
                   </span>
                 )}
               </button>
-
               {filterOpen && (
                 <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-800">
                   <div className="mb-4">
@@ -403,13 +533,17 @@ export default function TicketListBI() {
                     </label>
                     <select
                       value={filter.type}
-                      onChange={(e) => handleFilterChange({ type: e.target.value })}
+                      onChange={(e) =>
+                        handleFilterChange({ type: e.target.value })
+                      }
                       className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
                     >
                       <option value="">All</option>
                       <option value="TYPE1">Dashboard Access Request</option>
-                      <option value="TYPE2">User Account Management</option>
-                      <option value="TYPE3">Dashboard Development Request</option>
+                      <option value="TYPE3">
+                        Dashboard Development Request
+                      </option>
+                      {/* TYPE2 bỏ — BI không xử lý */}
                     </select>
                   </div>
 
@@ -419,21 +553,27 @@ export default function TicketListBI() {
                     </label>
                     <select
                       value={filter.status}
-                      onChange={(e) => handleFilterChange({ status: e.target.value })}
+                      onChange={(e) =>
+                        handleFilterChange({ status: e.target.value })
+                      }
                       className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
                     >
                       <option value="">All</option>
-                      <option value="CREATED">Created</option>
-                      <option value="PENDING">Pending</option>
                       <option value="APPROVED">Approved</option>
+                      <option value="IN_PROGRESS">In Progress</option>
+                      <option value="RESOLVED">Resolved</option>
+                      <option value="DONE">Done</option>
                       <option value="REJECTED">Rejected</option>
-                      <option value="SOLVED">Solved</option>
+                      <option value="CANCELLED">Cancelled</option>
                     </select>
                   </div>
 
                   <div className="flex gap-2">
                     <button
-                      onClick={() => { handleFilterChange({ type: "", status: "" }); setFilterOpen(false); }}
+                      onClick={() => {
+                        handleFilterChange({ type: "", status: "" });
+                        setFilterOpen(false);
+                      }}
                       className="h-10 flex-1 rounded-lg border border-gray-300 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-white/[0.03] transition"
                     >
                       Reset
@@ -457,13 +597,48 @@ export default function TicketListBI() {
             <Table>
               <TableHeader className="border-y border-gray-100 dark:border-white/[0.05]">
                 <TableRow>
-                  <TableCell isHeader className="px-4 py-3 text-start text-theme-xs text-gray-500">Requested By</TableCell>
-                  <TableCell isHeader className="px-4 py-3 text-start text-theme-xs text-gray-500">Type</TableCell>
-                  <TableCell isHeader className="px-4 py-3 text-start text-theme-xs text-gray-500">Description</TableCell>
-                  <TableCell isHeader className="px-4 py-3 text-start text-theme-xs text-gray-500">Assigned Staff</TableCell>
-                  <TableCell isHeader className="px-4 py-3 text-start text-theme-xs text-gray-500">Created</TableCell>
-                  <TableCell isHeader className="px-4 py-3 text-start text-theme-xs text-gray-500">Status</TableCell>
-                  <TableCell isHeader className="px-4 py-3 text-right text-theme-xs text-gray-500">Action</TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                  >
+                    Requested By
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                  >
+                    Type
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                  >
+                    Description
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                  >
+                    Assigned Staff
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                  >
+                    Created
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                  >
+                    Status
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-4 py-3 text-right text-theme-xs text-gray-500"
+                  >
+                    Action
+                  </TableCell>
                 </TableRow>
               </TableHeader>
 
@@ -482,7 +657,9 @@ export default function TicketListBI() {
                           <span className="font-medium text-gray-800 dark:text-white">
                             {ticket.requester?.username}
                           </span>
-                          <span className="text-xs text-gray-500">{ticket.requester?.email}</span>
+                          <span className="text-xs text-gray-500">
+                            {ticket.requester?.email}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
@@ -505,8 +682,11 @@ export default function TicketListBI() {
                         {new Date(ticket.createdAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="px-4 py-4">
-                        <Badge size="sm" color={statusColorMap[ticket.status] ?? "info"}>
-                          {ticket.status}
+                        <Badge
+                          size="sm"
+                          color={statusColorMap[ticket.status] ?? "info"}
+                        >
+                          {ticket.status.replace("_", " ")}
                         </Badge>
                       </TableCell>
                       <TableCell className="px-4 py-4 text-right">
@@ -529,15 +709,21 @@ export default function TicketListBI() {
         {/* PAGINATION */}
         <div className="border-t border-gray-200 px-6 py-4 dark:border-white/[0.05]">
           <div className="flex flex-1 justify-between sm:hidden">
-            <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}
-              className="rounded-lg bg-white px-4 py-3 text-sm ring-1 ring-gray-300 disabled:opacity-40 dark:bg-gray-800 dark:ring-gray-700">
+            <button
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+              className="rounded-lg bg-white px-4 py-3 text-sm ring-1 ring-gray-300 disabled:opacity-40 dark:bg-gray-800 dark:ring-gray-700"
+            >
               Previous
             </button>
             <span className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-400">
               Page {page} of {totalPages}
             </span>
-            <button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}
-              className="rounded-lg bg-white px-4 py-3 text-sm ring-1 ring-gray-300 disabled:opacity-40 dark:bg-gray-800 dark:ring-gray-700">
+            <button
+              disabled={page === totalPages}
+              onClick={() => setPage((p) => p + 1)}
+              className="rounded-lg bg-white px-4 py-3 text-sm ring-1 ring-gray-300 disabled:opacity-40 dark:bg-gray-800 dark:ring-gray-700"
+            >
               Next
             </button>
           </div>
@@ -547,34 +733,49 @@ export default function TicketListBI() {
               Showing{" "}
               <span className="font-medium text-gray-700 dark:text-gray-300">
                 {filteredTickets.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}
-              </span>{" "}–{" "}
+              </span>{" "}
+              –{" "}
               <span className="font-medium text-gray-700 dark:text-gray-300">
                 {Math.min(page * PAGE_SIZE, filteredTickets.length)}
-              </span>{" "}of{" "}
+              </span>{" "}
+              of{" "}
               <span className="font-medium text-gray-700 dark:text-gray-300">
                 {filteredTickets.length}
-              </span>{" "}tickets
+              </span>{" "}
+              tickets
             </p>
 
             <div className="flex items-center gap-2">
-              <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}
-                className="rounded-lg bg-white px-4 py-2.5 text-sm ring-1 ring-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:bg-gray-800 dark:ring-gray-700">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="rounded-lg bg-white px-4 py-2.5 text-sm ring-1 ring-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:bg-gray-800 dark:ring-gray-700"
+              >
                 Previous
               </button>
               <ul className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <li key={p}>
-                    <button onClick={() => setPage(p)}
-                      className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${
-                        page === p ? "bg-brand-500 text-white" : "text-gray-700 hover:bg-brand-500/10 dark:text-gray-400"
-                      }`}>
-                      {p}
-                    </button>
-                  </li>
-                ))}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (p) => (
+                    <li key={p}>
+                      <button
+                        onClick={() => setPage(p)}
+                        className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${
+                          page === p
+                            ? "bg-brand-500 text-white"
+                            : "text-gray-700 hover:bg-brand-500/10 dark:text-gray-400"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    </li>
+                  ),
+                )}
               </ul>
-              <button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}
-                className="rounded-lg bg-white px-4 py-2.5 text-sm ring-1 ring-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:bg-gray-800 dark:ring-gray-700">
+              <button
+                disabled={page === totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="rounded-lg bg-white px-4 py-2.5 text-sm ring-1 ring-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:bg-gray-800 dark:ring-gray-700"
+              >
                 Next
               </button>
             </div>

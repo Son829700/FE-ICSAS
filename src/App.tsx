@@ -25,6 +25,7 @@ import TicketListManager from "./pages/Manager/TicketManagement";
 import OAuth2RedirectHandler from "./components/auth/OAuth2RedirectHandler";
 import TicketListBI from "./pages/BI/TicketManagement";
 import AdminTicketManagement from "./pages/Adminitrator/TicketManagement";
+import TicketListBIStaff from "./pages/BI/TicketListBIStaff";
 
 export default function App() {
   return (
@@ -57,7 +58,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/profile"
             element={
@@ -78,7 +78,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
           {/* ADMIN */}
           <Route
             path="/user"
@@ -88,7 +87,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/department"
             element={
@@ -97,7 +95,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/log"
             element={
@@ -114,7 +111,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
           {/* MANAGER */}
           <Route
             path="/manager/ticket"
@@ -124,7 +120,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/manager/ticket/:id"
             element={
@@ -133,7 +128,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
           {/* STAFF */}
           <Route
             path="/ticket"
@@ -143,7 +137,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/ticket/:id"
             element={
@@ -152,13 +145,20 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
           {/* BI */}
           <Route
             path="/group"
             element={
               <ProtectedRoute allowedRoles={["BI"]}>
                 <GroupManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/BI/my-ticket"
+            element={
+              <ProtectedRoute allowedRoles={["BI"]}>
+                <TicketListBIStaff />
               </ProtectedRoute>
             }
           />
@@ -170,7 +170,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/groups/:groupId"
             element={
@@ -179,7 +178,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/dashboard"
             element={
@@ -188,7 +186,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/BI/ticket-detail"
             element={

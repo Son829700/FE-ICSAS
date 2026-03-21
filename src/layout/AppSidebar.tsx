@@ -97,6 +97,7 @@ const navItems: NavItem[] = [
   },
 
   // BI
+
   {
     name: "Dashboard Management",
     icon: <BarChart3 />,
@@ -113,6 +114,12 @@ const navItems: NavItem[] = [
     name: "Ticket Management",
     icon: <TableIcon />,
     path: "/BI/ticket",
+    roles: ["BI"],
+  },
+  {
+    name: "My Tickets",
+    icon: <Ticket />,
+    path: "/BI/my-ticket",
     roles: ["BI"],
   },
 ];

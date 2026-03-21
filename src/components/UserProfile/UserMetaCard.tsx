@@ -22,17 +22,32 @@ export interface Department {
   status: string;
 }
 export default function UserMetaCard() {
-
   const { user } = useAuthContext();
-
+  const initials = user?.username
+    ? user.username.slice(0, 1).toUpperCase()
+    : "U";
+  const getAvatarColor = (name: string) => {
+    const colors = [
+      "bg-blue-500",
+      "bg-purple-500",
+      "bg-green-500",
+      "bg-orange-500",
+      "bg-pink-500",
+      "bg-teal-500",
+    ];
+    const idx = name.charCodeAt(0) % colors.length;
+    return colors[idx];
+  };
   if (!user) return null;
   return (
     <>
       <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-col items-center w-full gap-6 xl:flex-row">
-            <div className="w-20 h-20 overflow-hidden border border-gray-200 rounded-full dark:border-gray-800">
-              <img src="/images/user/owner.jpg" alt="user" />
+            <div
+              className={`w-20 h-20 flex items-center justify-center rounded-full text-white text-2xl font-semibold ${getAvatarColor(user?.username ?? "U")}`}
+            >
+              {initials}
             </div>
             <div className="order-3 xl:order-2">
               <h4 className="mb-2 text-lg font-semibold text-center text-gray-800 dark:text-white/90 xl:text-left">
