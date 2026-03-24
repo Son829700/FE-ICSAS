@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table";
+import DashboardViewer from "../Dashboard/DashboardViewer";
 
 /* =======================
    CONSTANTS
@@ -276,7 +277,6 @@ function Type3ReviewModal({ ticket, onClose, onUpdated }: Type3ModalProps) {
         <div className="p-6 space-y-6">
           {/* Ticket Info */}
           <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-           
             <DetailRow
               label="Requester"
               value={
@@ -363,12 +363,9 @@ function Type3ReviewModal({ ticket, onClose, onUpdated }: Type3ModalProps) {
 
                   {/* Iframe preview */}
                   <div className="relative w-full" style={{ height: "400px" }}>
-                    <iframe
-                      src={dashboard.url_path}
-                      className="w-full h-full border-none"
-                      title={dashboard.dashboard_name}
-                      allowFullScreen
-                      sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"
+                    <DashboardViewer
+                      url={dashboard.url_path}
+                      category={dashboard.category}
                     />
                   </div>
                 </div>
@@ -487,12 +484,12 @@ function Type3ReviewModal({ ticket, onClose, onUpdated }: Type3ModalProps) {
             >
               <p
                 className={`text-sm font-medium ${
-                  currentTicket.status === "VERIFIED" 
+                  currentTicket.status === "VERIFIED"
                     ? "text-success-700 dark:text-success-400"
                     : "text-error-600 dark:text-error-400"
                 }`}
               >
-                {currentTicket.status === "VERIFIED" 
+                {currentTicket.status === "VERIFIED"
                   ? "Dashboard verified and approved."
                   : "Dashboard rejected — sent back to BI Staff for revision."}
               </p>
@@ -625,7 +622,6 @@ function Type2ReviewModal({
 
         <div className="p-6 space-y-6">
           <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-            
             <DetailRow
               label="Requester"
               value={
@@ -724,7 +720,6 @@ function Type2ReviewModal({
                       >
                         <option value="STAFF">Staff</option>
                         <option value="BI">BI</option>
-                        <option value="MANAGER">Manager</option>
                       </select>
                     </div>
                     <div>

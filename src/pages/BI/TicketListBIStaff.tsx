@@ -464,7 +464,7 @@ function TicketDetailModal({
           {currentTicket.status === "VERIFIED" && (
             <div className="rounded-xl border border-success-200 bg-success-50 p-5 dark:border-success-800 dark:bg-success-900/10 space-y-3">
               <h4 className="text-sm font-semibold text-success-700 dark:text-success-400">
-                ✅ Dashboard Verified by Admin
+                Dashboard Verified by Admin
               </h4>
               <p className="text-sm text-success-600 dark:text-success-300">
                 The dashboard has been approved. Grant the requester access to
@@ -491,16 +491,16 @@ function TicketDetailModal({
                 ) : (
                   <CheckCheck className="size-4" />
                 )}
-                {submitting ? "Updating..." : "Grant Access & Mark Resolved"}
+                {submitting ? "Updating..." : " Mark Resolved"}
               </button>
             </div>
           )}
 
           {/* RESOLVED — chờ user confirm */}
-          {currentTicket.status === "RESOLVED" && (
+          {/* {currentTicket.status === "RESOLVED" && (
             <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 dark:border-blue-800 dark:bg-blue-900/10">
               <p className="text-sm font-medium text-blue-700 dark:text-blue-400">
-                ⏳{" "}
+               
                 {isType3
                   ? "Waiting for requester to confirm"
                   : "Waiting for requester confirmation"}
@@ -509,13 +509,13 @@ function TicketDetailModal({
                 The requester needs to confirm completion.
               </p>
             </div>
-          )}
+          )} */}
 
           {/* RESOLVED */}
           {currentTicket.status === "RESOLVED" && (
             <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 dark:border-blue-800 dark:bg-blue-900/10">
               <p className="text-sm font-medium text-blue-700 dark:text-blue-400">
-                ⏳{" "}
+              
                 {isType3
                   ? "Waiting for Admin to review the dashboard draft"
                   : "Waiting for requester confirmation"}

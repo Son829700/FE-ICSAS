@@ -133,7 +133,6 @@ export default function AddTicketCard({
         <div className="flex flex-col gap-5">
           {/* TICKET TYPE */}
           {isSingleType ? (
-            /* Nếu chỉ có 1 type → hiện badge thay vì select */
             <div>
               <Label>Ticket Type</Label>
               <div className="flex h-11 items-center rounded-lg border border-gray-200 bg-gray-50 px-3 dark:border-gray-700 dark:bg-gray-800">
