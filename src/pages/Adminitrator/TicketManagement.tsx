@@ -1,6 +1,15 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useRef, useState } from "react";
 import API from "../../api";
-import { Filter, X, Loader2, Send, UserCog, CheckCheck } from "lucide-react";
+import {
+  Filter,
+  X,
+  Loader2,
+  Send,
+  UserCog,
+  CheckCheck,
+  ExternalLink,
+} from "lucide-react";
 import PageMeta from "../../components/common/PageMeta";
 import Badge from "../../components/ui/badge/Badge";
 import Button from "../../components/ui/button/Button";
@@ -17,17 +26,23 @@ import {
 /* =======================
    CONSTANTS
 ======================= */
+const TICKET_TYPE_MAP: Record<string, string> = {
+  TYPE2: "User Account Management",
+  TYPE3: "Dashboard Development Request",
+};
+
 const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> =
   {
     DONE: "success",
     RESOLVED: "success",
+    VERIFIED: "success",
     APPROVED: "info",
     IN_PROGRESS: "info",
+    WAITING_FOR_VERIFICATION: "warning",
     CREATED: "warning",
     REJECTED: "error",
     CANCELLED: "error",
   };
-
 const PAGE_SIZE = 10;
 
 /* =======================
@@ -55,10 +70,13 @@ interface Ticket {
   type: string;
   description: string;
   reason: string;
+  dashboard_id: string | null;
   status:
     | "CREATED"
     | "APPROVED"
     | "IN_PROGRESS"
+    | "WAITING_FOR_VERIFICATION"
+    | "VERIFIED"
     | "RESOLVED"
     | "REJECTED"
     | "CANCELLED"
@@ -69,22 +87,30 @@ interface Ticket {
   updatedAt: string;
 }
 
+interface Dashboard {
+  dashboard_id: string;
+  dashboard_name: string;
+  url_path: string;
+  category: string;
+  status: string;
+}
+
 interface FilterValue {
+  type: string;
   status: string;
 }
 
 /* =======================
-   STEP BADGE
+   FLOW PROGRESS (TYPE2)
 ======================= */
-const FLOW_STEPS = ["CREATED", "APPROVED", "RESOLVED", "DONE"];
+const FLOW_STEPS_TYPE2 = ["CREATED", "APPROVED", "RESOLVED", "DONE"];
 
 function FlowProgress({ status }: { status: string }) {
   const isRejected = status === "REJECTED" || status === "CANCELLED";
-  const currentIdx = FLOW_STEPS.indexOf(status);
-
+  const currentIdx = FLOW_STEPS_TYPE2.indexOf(status);
   return (
     <div className="flex items-center gap-1">
-      {FLOW_STEPS.map((step, idx) => {
+      {FLOW_STEPS_TYPE2.map((step, idx) => {
         const done = currentIdx > idx;
         const active = currentIdx === idx;
         return (
@@ -100,7 +126,7 @@ function FlowProgress({ status }: { status: string }) {
                       : "bg-gray-200 dark:bg-gray-700"
               }`}
             />
-            {idx < FLOW_STEPS.length - 1 && (
+            {idx < FLOW_STEPS_TYPE2.length - 1 && (
               <div
                 className={`h-px w-4 ${done && !isRejected ? "bg-success-500" : "bg-gray-200 dark:bg-gray-700"}`}
               />
@@ -135,21 +161,371 @@ function DetailRow({
 }
 
 /* =======================
-   TICKET DETAIL MODAL
+   TYPE3 MODAL — Admin review dashboard draft
 ======================= */
-interface TicketDetailModalProps {
+interface Type3ModalProps {
+  ticket: Ticket;
+  onClose: () => void;
+  onUpdated: (updated: Ticket) => void;
+}
+
+function Type3ReviewModal({ ticket, onClose, onUpdated }: Type3ModalProps) {
+  const [currentTicket, setCurrentTicket] = useState<Ticket>(ticket);
+  const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+  const [loadingDashboard, setLoadingDashboard] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (currentTicket.dashboard_id) {
+      const fetchDashboard = async () => {
+        try {
+          setLoadingDashboard(true);
+          const res = await API.get(`/dashboard/${currentTicket.dashboard_id}`);
+          setDashboard(res.data.data);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setLoadingDashboard(false);
+        }
+      };
+      fetchDashboard();
+    }
+  }, [currentTicket.dashboard_id]);
+
+  const refetch = async () => {
+    const res = await API.get(`/tickets/${currentTicket.ticket_id}`);
+    const updated: Ticket = res.data.data;
+    setCurrentTicket(updated);
+    onUpdated(updated);
+  };
+
+  const handleApprove = async () => {
+    try {
+      setSubmitting(true);
+      await API.put(`/tickets/approve-dashboard/${currentTicket.ticket_id}`);
+      toast.success("Dashboard approved! Ticket marked as DONE.");
+      await refetch();
+    } catch (err) {
+      toast.error("Failed to approve.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectReason.trim()) {
+      toast.error("Please provide a reason.");
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await API.put(
+        `/tickets/reject-dashboard/${currentTicket.ticket_id}`,
+        null,
+        {
+          params: { reason: rejectReason.trim() },
+        },
+      );
+      toast.success("Dashboard rejected. Ticket sent back to BI Staff.");
+      await refetch();
+      setShowRejectForm(false);
+      setRejectReason("");
+    } catch (err) {
+      toast.error("Failed to reject.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const isTerminal = ["DONE", "VERIFIED", "REJECTED", "CANCELLED"].includes(
+    currentTicket.status,
+  );
+  const canReview =
+    currentTicket.status === "WAITING_FOR_VERIFICATION" &&
+    !!currentTicket.dashboard_id;
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-800 dark:bg-gray-900">
+        {/* Header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+              Dashboard Development Ticket
+            </h3>
+            <div className="mt-1 flex items-center gap-2">
+              <Badge
+                size="sm"
+                color={statusColorMap[currentTicket.status] ?? "info"}
+              >
+                {currentTicket.status.replace("_", " ")}
+              </Badge>
+              <span className="text-xs text-gray-400">TYPE3</span>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Ticket Info */}
+          <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+           
+            <DetailRow
+              label="Requester"
+              value={
+                <div className="flex flex-col">
+                  <span className="font-medium">
+                    {currentTicket.requester?.username}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {currentTicket.requester?.email}
+                  </span>
+                </div>
+              }
+            />
+            <DetailRow
+              label="Department"
+              value={
+                currentTicket.requester?.department?.department_name ?? "—"
+              }
+            />
+            <DetailRow
+              label="Description"
+              value={
+                <span className="whitespace-pre-wrap">
+                  {currentTicket.description}
+                </span>
+              }
+            />
+            <DetailRow
+              label="Assigned BI Staff"
+              value={
+                currentTicket.assigned_staff ? (
+                  <div className="flex flex-col">
+                    <span className="font-medium">
+                      {currentTicket.assigned_staff.username}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {currentTicket.assigned_staff.email}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-gray-400">—</span>
+                )
+              }
+            />
+            <DetailRow
+              label="Created At"
+              value={new Date(currentTicket.createdAt).toLocaleString()}
+            />
+            {currentTicket.reason && (
+              <DetailRow
+                label="Reason"
+                value={
+                  <span className="text-error-500">{currentTicket.reason}</span>
+                }
+              />
+            )}
+          </ul>
+
+          {/* Dashboard Preview */}
+          {currentTicket.dashboard_id && (
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Dashboard Draft to Review
+              </h4>
+
+              {loadingDashboard ? (
+                <div className="flex items-center gap-2 text-sm text-gray-400">
+                  <Loader2 className="size-4 animate-spin" />
+                  Loading dashboard...
+                </div>
+              ) : dashboard ? (
+                <div className="rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-white/[0.02] overflow-hidden">
+                  {/* Dashboard info bar */}
+                  <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800 dark:text-white">
+                        {dashboard.dashboard_name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {dashboard.category} · {dashboard.status}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Iframe preview */}
+                  <div className="relative w-full" style={{ height: "400px" }}>
+                    <iframe
+                      src={dashboard.url_path}
+                      className="w-full h-full border-none"
+                      title={dashboard.dashboard_name}
+                      allowFullScreen
+                      sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-gray-300 px-4 py-6 text-center dark:border-gray-700">
+                  <p className="text-sm text-gray-400">
+                    Could not load dashboard preview.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* No dashboard yet */}
+          {!currentTicket.dashboard_id &&
+            currentTicket.status === "IN_PROGRESS" && (
+              <div className="rounded-xl border border-dashed border-gray-300 px-4 py-4 dark:border-gray-700">
+                <p className="text-sm text-gray-400 text-center">
+                  BI Staff is still working on the dashboard.
+                </p>
+              </div>
+            )}
+
+          {/* ACTION SECTION — chỉ khi RESOLVED và có dashboard */}
+          {canReview && !isTerminal && (
+            <div className="rounded-xl border border-purple-200 bg-purple-50 p-5 dark:border-purple-800 dark:bg-purple-900/10 space-y-4">
+              <h4 className="text-sm font-semibold text-purple-700 dark:text-purple-400">
+                Admin Review Decision
+              </h4>
+              <p className="text-sm text-purple-600 dark:text-purple-300">
+                Review the dashboard above, then approve to publish it or reject
+                to send back for revision.
+              </p>
+
+              {!showRejectForm ? (
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleApprove}
+                    disabled={submitting}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-success-500 py-2.5 text-sm font-medium text-white hover:bg-success-600 disabled:opacity-50 transition"
+                  >
+                    {submitting ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <CheckCheck className="size-4" />
+                    )}
+                    {submitting
+                      ? "Processing..."
+                      : "Approve & Publish Dashboard"}
+                  </button>
+                  <button
+                    onClick={() => setShowRejectForm(true)}
+                    disabled={submitting}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-error-500 py-2.5 text-sm font-medium text-white hover:bg-error-600 disabled:opacity-50 transition"
+                  >
+                    <X className="size-4" />
+                    Reject — Send Back
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Reason for Rejection{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      placeholder="Describe what needs to be fixed or improved..."
+                      rows={4}
+                      className={`w-full rounded-lg border p-3 text-sm outline-none focus:ring-1 resize-none dark:bg-gray-800 dark:text-gray-300 transition ${
+                        !rejectReason.trim()
+                          ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700"
+                          : "border-gray-300 focus:border-brand-500 focus:ring-brand-500 dark:border-gray-700"
+                      }`}
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setShowRejectForm(false);
+                        setRejectReason("");
+                      }}
+                      disabled={submitting}
+                      className="flex-1 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition dark:border-gray-600 dark:text-gray-400"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleReject}
+                      disabled={submitting || !rejectReason.trim()}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-error-500 py-2.5 text-sm font-medium text-white hover:bg-error-600 disabled:opacity-50 transition"
+                    >
+                      {submitting ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Send className="size-4" />
+                      )}
+                      {submitting ? "Rejecting..." : "Confirm Reject"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TERMINAL */}
+          {isTerminal && (
+            <div
+              className={`rounded-xl border px-4 py-3 ${
+                currentTicket.status === "VERIFIED"
+                  ? "border-success-200 bg-success-50 dark:border-success-800 dark:bg-success-900/10"
+                  : "border-error-200 bg-error-50 dark:border-error-800 dark:bg-error-900/10"
+              }`}
+            >
+              <p
+                className={`text-sm font-medium ${
+                  currentTicket.status === "VERIFIED" 
+                    ? "text-success-700 dark:text-success-400"
+                    : "text-error-600 dark:text-error-400"
+                }`}
+              >
+                {currentTicket.status === "VERIFIED" 
+                  ? "Dashboard verified and approved."
+                  : "Dashboard rejected — sent back to BI Staff for revision."}
+              </p>
+              {currentTicket.reason && (
+                <p className="mt-1 text-sm text-error-500">
+                  Reason: {currentTicket.reason}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =======================
+   TYPE2 MODAL (giữ nguyên như cũ)
+   Chỉ đổi tên component
+======================= */
+interface Type2ModalProps {
   ticket: Ticket;
   departments: Department[];
   onClose: () => void;
   onUpdated: (updated: Ticket) => void;
 }
 
-function TicketDetailModal({
+function Type2ReviewModal({
   ticket,
   departments,
   onClose,
   onUpdated,
-}: TicketDetailModalProps) {
+}: Type2ModalProps) {
   const [currentTicket, setCurrentTicket] = useState<Ticket>(ticket);
   const [decision, setDecision] = useState<"APPROVED" | "REJECTED" | "">("");
   const [grantRole, setGrantRole] = useState<string>(
@@ -163,20 +539,16 @@ function TicketDetailModal({
 
   const isRejectWithoutReason = decision === "REJECTED" && !rejectReason.trim();
 
-  /* ---- Step 2: Admin approve / reject ---- */
   const handleDecision = async () => {
     if (!decision || isRejectWithoutReason) return;
     try {
       setSubmitting(true);
-
       if (decision === "APPROVED") {
-        // Update role if changed
         if (grantRole && grantRole !== currentTicket.requester?.role) {
           await API.put(
             `/users/role/${currentTicket.requester.user_id}/${grantRole}`,
           );
         }
-        // Update department if changed
         if (
           grantDept &&
           grantDept !== currentTicket.requester?.department?.department_id
@@ -185,7 +557,6 @@ function TicketDetailModal({
             `/users/${currentTicket.requester.user_id}/department/${grantDept}`,
           );
         }
-        // Approve ticket
         await API.post(`/tickets/${currentTicket.ticket_id}/status/APPROVED`);
         toast.success("Ticket approved and user updated!");
       } else {
@@ -194,35 +565,28 @@ function TicketDetailModal({
         });
         toast.success("Ticket rejected.");
       }
-
-      // Refetch this ticket
       const res = await API.get(`/tickets/${currentTicket.ticket_id}`);
       const updated: Ticket = res.data.data;
       setCurrentTicket(updated);
       onUpdated(updated);
       setDecision("");
     } catch (error) {
-      console.error(error);
       toast.error("Failed to process ticket.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  /* ---- Step 3: Admin marks RESOLVED ---- */
   const handleResolved = async () => {
     try {
       setSubmitting(true);
       await API.post(`/tickets/${currentTicket.ticket_id}/status/RESOLVED`);
-      toast.success(
-        "Ticket marked as resolved. Waiting for requester confirmation.",
-      );
+      toast.success("Ticket marked as resolved.");
       const res = await API.get(`/tickets/${currentTicket.ticket_id}`);
       const updated: Ticket = res.data.data;
       setCurrentTicket(updated);
       onUpdated(updated);
     } catch (error) {
-      console.error(error);
       toast.error("Failed to update ticket.");
     } finally {
       setSubmitting(false);
@@ -236,7 +600,6 @@ function TicketDetailModal({
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-800 dark:bg-gray-900">
-        {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
           <div>
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
@@ -261,16 +624,8 @@ function TicketDetailModal({
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Ticket Info */}
           <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-            <DetailRow
-              label="Ticket ID"
-              value={
-                <span className="font-mono text-xs">
-                  {currentTicket.ticket_id}
-                </span>
-              }
-            />
+            
             <DetailRow
               label="Requester"
               value={
@@ -309,7 +664,7 @@ function TicketDetailModal({
               }
             />
             <DetailRow
-              label="Request Description"
+              label="Description"
               value={
                 <span className="whitespace-pre-wrap">
                   {currentTicket.description}
@@ -324,25 +679,20 @@ function TicketDetailModal({
               <DetailRow
                 label="Reject Reason"
                 value={
-                  <span className="text-error-500 dark:text-error-400">
-                    {currentTicket.reason}
-                  </span>
+                  <span className="text-error-500">{currentTicket.reason}</span>
                 }
               />
             )}
           </ul>
 
-          {/* ===== STEP 2: CREATED → Admin approve/reject ===== */}
           {currentTicket.status === "CREATED" && (
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-700 dark:bg-white/[0.02] space-y-4">
               <div className="flex items-center gap-2">
                 <UserCog className="size-5 text-brand-500" />
                 <h4 className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                  Step 2 — Review & Decide
+                  Review & Decide
                 </h4>
               </div>
-
-              {/* Decision select */}
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
                   Decision <span className="text-red-500">*</span>
@@ -360,8 +710,6 @@ function TicketDetailModal({
                   <option value="REJECTED">Reject</option>
                 </select>
               </div>
-
-              {/* APPROVE: role + dept */}
               {decision === "APPROVED" && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -376,9 +724,9 @@ function TicketDetailModal({
                       >
                         <option value="STAFF">Staff</option>
                         <option value="BI">BI</option>
+                        <option value="MANAGER">Manager</option>
                       </select>
                     </div>
-
                     <div>
                       <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
                         Assign Department
@@ -397,16 +745,14 @@ function TicketDetailModal({
                       </select>
                     </div>
                   </div>
-
-                  {/* Change summary */}
                   <div className="rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 dark:border-brand-900 dark:bg-brand-900/20">
-                    <p className="text-xs font-semibold text-brand-600 dark:text-brand-400 mb-1.5">
+                    <p className="text-xs font-semibold text-brand-600 mb-1.5">
                       Changes to be applied:
                     </p>
-                    <ul className="space-y-1 text-xs text-brand-500 dark:text-brand-300">
+                    <ul className="space-y-1 text-xs text-brand-500">
                       <li>
                         Role:{" "}
-                        <span className="font-medium line-through opacity-60">
+                        <span className="line-through opacity-60">
                           {currentTicket.requester?.role ?? "—"}
                         </span>
                         {" → "}
@@ -414,7 +760,7 @@ function TicketDetailModal({
                       </li>
                       <li>
                         Department:{" "}
-                        <span className="font-medium line-through opacity-60">
+                        <span className="line-through opacity-60">
                           {currentTicket.requester?.department
                             ?.department_name ?? "None"}
                         </span>
@@ -429,32 +775,24 @@ function TicketDetailModal({
                   </div>
                 </div>
               )}
-
-              {/* REJECT: reason */}
               {decision === "REJECTED" && (
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                    Reason for Rejection <span className="text-red-500">*</span>
+                    Reason <span className="text-red-500">*</span>
                   </label>
                   <textarea
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
-                    placeholder="Explain why this request is being rejected..."
+                    placeholder="Explain why..."
                     rows={4}
-                    className={`w-full rounded-lg border p-3 text-sm outline-none focus:ring-1 resize-none dark:bg-gray-800 dark:text-gray-300 transition ${
+                    className={`w-full rounded-lg border p-3 text-sm outline-none focus:ring-1 resize-none dark:bg-gray-800 dark:text-gray-300 ${
                       !rejectReason.trim()
-                        ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700"
-                        : "border-gray-300 focus:border-brand-500 focus:ring-brand-500 dark:border-gray-700"
+                        ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                        : "border-gray-300 focus:border-brand-500 focus:ring-brand-500"
                     }`}
                   />
-                  {!rejectReason.trim() && (
-                    <p className="mt-1 text-xs text-red-500">
-                      Reason is required.
-                    </p>
-                  )}
                 </div>
               )}
-
               {decision && (
                 <button
                   onClick={handleDecision}
@@ -480,19 +818,16 @@ function TicketDetailModal({
             </div>
           )}
 
-          {/* ===== STEP 3: APPROVED → Admin marks done ===== */}
           {currentTicket.status === "APPROVED" && (
             <div className="rounded-xl border border-success-200 bg-success-50 p-5 dark:border-success-800 dark:bg-success-900/10 space-y-3">
               <div className="flex items-center gap-2">
-                <CheckCheck className="size-5 text-success-600 dark:text-success-400" />
-                <h4 className="text-sm font-semibold text-success-700 dark:text-success-400">
-                  Step 3 — Complete Task & Mark Resolved
+                <CheckCheck className="size-5 text-success-600" />
+                <h4 className="text-sm font-semibold text-success-700">
+                  Complete Task & Mark Resolved
                 </h4>
               </div>
-              <p className="text-sm text-success-600 dark:text-success-300">
-                Ticket has been approved. Please complete the requested task
-                (e.g. create account, update info), then mark it as resolved for
-                the requester to confirm.
+              <p className="text-sm text-success-600">
+                Complete the requested task, then mark as resolved.
               </p>
               <button
                 onClick={handleResolved}
@@ -504,27 +839,19 @@ function TicketDetailModal({
                 ) : (
                   <CheckCheck className="size-4" />
                 )}
-                {submitting
-                  ? "Updating..."
-                  : "Mark as Resolved (Done with task)"}
+                {submitting ? "Updating..." : "Mark as Resolved"}
               </button>
             </div>
           )}
 
-          {/* ===== RESOLVED: waiting for requester ===== */}
           {currentTicket.status === "RESOLVED" && (
             <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 dark:border-blue-800 dark:bg-blue-900/10">
-              <p className="text-sm font-medium text-blue-700 dark:text-blue-400">
+              <p className="text-sm font-medium text-blue-700">
                 ⏳ Waiting for requester confirmation
-              </p>
-              <p className="mt-1 text-xs text-blue-500 dark:text-blue-300">
-                The requester needs to verify their account and confirm by
-                clicking "Done".
               </p>
             </div>
           )}
 
-          {/* ===== TERMINAL ===== */}
           {isTerminal && (
             <div
               className={`rounded-xl border px-4 py-3 ${
@@ -534,20 +861,16 @@ function TicketDetailModal({
               }`}
             >
               <p
-                className={`text-sm font-medium ${
-                  currentTicket.status === "DONE"
-                    ? "text-success-700 dark:text-success-400"
-                    : "text-error-600 dark:text-error-400"
-                }`}
+                className={`text-sm font-medium ${currentTicket.status === "DONE" ? "text-success-700" : "text-error-600"}`}
               >
                 {currentTicket.status === "DONE"
-                  ? "✅ Ticket completed successfully."
+                  ? "✅ Ticket completed."
                   : currentTicket.status === "REJECTED"
-                    ? "❌ This ticket has been rejected."
-                    : "🚫 This ticket has been cancelled."}
+                    ? "❌ Rejected."
+                    : "🚫 Cancelled."}
               </p>
               {currentTicket.reason && (
-                <p className="mt-1 text-sm text-error-500 dark:text-error-300">
+                <p className="mt-1 text-sm text-error-500">
                   Reason: {currentTicket.reason}
                 </p>
               )}
@@ -565,7 +888,7 @@ function TicketDetailModal({
 export default function AdminTicketManagement() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [filter, setFilter] = useState<FilterValue>({ status: "" });
+  const [filter, setFilter] = useState<FilterValue>({ type: "", status: "" });
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -586,13 +909,27 @@ export default function AdminTicketManagement() {
 
   const fetchTickets = async () => {
     try {
-      const res = await API.get("/tickets/type/TYPE2");
-      setTickets(
-        res.data.data.sort(
-          (a: Ticket, b: Ticket) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        ),
+      const [type2Res, type3Res] = await Promise.all([
+        API.get("/tickets/type/TYPE2"),
+        API.get("/tickets/type/TYPE3"),
+      ]);
+
+      const type2: Ticket[] = type2Res.data.data ?? [];
+      // TYPE3: chỉ lấy những ticket đã có dashboard (RESOLVED trở đi)
+      const type3: Ticket[] = (type3Res.data.data ?? []).filter(
+        (t: Ticket) =>
+          !!t.dashboard_id &&
+          ["WAITING_FOR_VERIFICATION", "VERIFIED", "REJECTED"].includes(
+            t.status,
+          ),
       );
+
+      const merged = [...type2, ...type3].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+      setTickets(merged);
+      console.log(tickets);
     } catch (error) {
       console.error("Fetch error:", error);
     }
@@ -603,12 +940,13 @@ export default function AdminTicketManagement() {
       const res = await API.get("/departments");
       setDepartments(res.data.data);
     } catch (error) {
-      console.error("Fetch departments error:", error);
+      console.error(error);
     }
   };
 
   useEffect(() => {
     fetchTickets();
+    console.log(tickets);
     fetchDepartments();
   }, []);
 
@@ -621,9 +959,12 @@ export default function AdminTicketManagement() {
     }
   };
 
-  const filteredTickets = tickets.filter(
-    (t) => !filter.status || t.status === filter.status,
-  );
+  const filteredTickets = tickets.filter((t) => {
+    const typeMatch = !filter.type || t.type === filter.type;
+    const statusMatch = !filter.status || t.status === filter.status;
+    return typeMatch && statusMatch;
+  });
+
   const totalPages = Math.max(1, Math.ceil(filteredTickets.length / PAGE_SIZE));
   const paginatedTickets = filteredTickets.slice(
     (page - 1) * PAGE_SIZE,
@@ -631,17 +972,28 @@ export default function AdminTicketManagement() {
   );
 
   const totalTickets = tickets.length;
-  const awaitingTickets = tickets.filter((t) => t.status === "CREATED").length;
-  const approvedTickets = tickets.filter((t) => t.status === "APPROVED").length;
-  const resolvedTickets = tickets.filter((t) => t.status === "RESOLVED").length;
+  const awaitingType2 = tickets.filter(
+    (t) => t.type === "TYPE2" && t.status === "CREATED",
+  ).length;
+  const awaitingType3 = tickets.filter(
+    (t) => t.type === "TYPE3" && t.status === "RESOLVED",
+  ).length;
   const doneTickets = tickets.filter((t) => t.status === "DONE").length;
 
   return (
     <div>
-      {selectedTicket && (
-        <TicketDetailModal
+      {/* Render đúng modal theo type */}
+      {selectedTicket?.type === "TYPE2" && (
+        <Type2ReviewModal
           ticket={selectedTicket}
           departments={departments}
+          onClose={() => setSelectedTicket(null)}
+          onUpdated={handleTicketUpdated}
+        />
+      )}
+      {selectedTicket?.type === "TYPE3" && (
+        <Type3ReviewModal
+          ticket={selectedTicket}
           onClose={() => setSelectedTicket(null)}
           onUpdated={handleTicketUpdated}
         />
@@ -649,33 +1001,33 @@ export default function AdminTicketManagement() {
 
       <PageMeta
         title="Ticket Management | Admin"
-        description="Admin user account ticket management"
+        description="Admin ticket management"
       />
 
       {/* STATS */}
       <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4">
-        <ComponentCard title="Total Requests">
+        <ComponentCard title="Total Tickets">
           <h3 className="text-2xl font-bold text-gray-800 dark:text-white/90">
             {totalTickets}
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            User account tickets
+            TYPE2 + TYPE3 requiring Admin
           </p>
         </ComponentCard>
-        <ComponentCard title="Awaiting Review">
+        <ComponentCard title="Account Requests">
           <h3 className="text-2xl font-bold text-warning-500">
-            {awaitingTickets}
+            {awaitingType2}
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Need your decision
+            TYPE2 awaiting review
           </p>
         </ComponentCard>
-        <ComponentCard title="In Progress">
-          <h3 className="text-2xl font-bold text-brand-500">
-            {approvedTickets + resolvedTickets}
+        <ComponentCard title="Dashboard Reviews">
+          <h3 className="text-2xl font-bold text-purple-500">
+            {awaitingType3}
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Approved or awaiting confirm
+            TYPE3 dashboard to review
           </p>
         </ComponentCard>
         <ComponentCard title="Completed">
@@ -691,14 +1043,14 @@ export default function AdminTicketManagement() {
         <div className="mb-4 flex flex-col gap-3 px-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-              User Account Management Tickets
+              Admin Ticket Management
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Review and process account creation & update requests
+              Process account requests (TYPE2) and review dashboard drafts
+              (TYPE3)
             </p>
           </div>
 
-          {/* Filter by status only */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setFilterOpen(!filterOpen)}
@@ -706,38 +1058,56 @@ export default function AdminTicketManagement() {
             >
               <Filter size={18} />
               Filter
-              {filter.status && (
+              {(filter.type || filter.status) && (
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-xs text-white">
-                  1
+                  {[filter.type, filter.status].filter(Boolean).length}
                 </span>
               )}
             </button>
 
             {filterOpen && (
-              <div className="absolute right-0 z-20 mt-2 w-52 rounded-xl border bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Status
-                </label>
-                <select
-                  value={filter.status}
-                  onChange={(e) => {
-                    setFilter({ status: e.target.value });
-                    setPage(1);
-                  }}
-                  className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                >
-                  <option value="">All</option>
-                  <option value="CREATED">Created</option>
-                  <option value="APPROVED">Approved</option>
-                  <option value="RESOLVED">Resolved</option>
-                  <option value="DONE">Done</option>
-                  <option value="REJECTED">Rejected</option>
-                  <option value="CANCELLED">Cancelled</option>
-                </select>
-                <div className="mt-3 flex gap-2">
+              <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                <div className="mb-4">
+                  <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                    Ticket Type
+                  </label>
+                  <select
+                    value={filter.type}
+                    onChange={(e) => {
+                      setFilter((p) => ({ ...p, type: e.target.value }));
+                      setPage(1);
+                    }}
+                    className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                  >
+                    <option value="">All</option>
+                    <option value="TYPE2">User Account Management</option>
+                    <option value="TYPE3">Dashboard Development</option>
+                  </select>
+                </div>
+                <div className="mb-4">
+                  <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                    Status
+                  </label>
+                  <select
+                    value={filter.status}
+                    onChange={(e) => {
+                      setFilter((p) => ({ ...p, status: e.target.value }));
+                      setPage(1);
+                    }}
+                    className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                  >
+                    <option value="">All</option>
+                    <option value="CREATED">Created</option>
+                    <option value="APPROVED">Approved</option>
+                    <option value="RESOLVED">Resolved</option>
+                    <option value="DONE">Done</option>
+                    <option value="REJECTED">Rejected</option>
+                  </select>
+                </div>
+                <div className="flex gap-2">
                   <button
                     onClick={() => {
-                      setFilter({ status: "" });
+                      setFilter({ type: "", status: "" });
                       setPage(1);
                       setFilterOpen(false);
                     }}
@@ -757,7 +1127,6 @@ export default function AdminTicketManagement() {
           </div>
         </div>
 
-        {/* TABLE CONTENT */}
         <div className="max-w-full overflow-x-auto px-5 sm:px-6">
           <Table>
             <TableHeader className="border-y border-gray-100 dark:border-white/[0.05]">
@@ -772,25 +1141,13 @@ export default function AdminTicketManagement() {
                   isHeader
                   className="px-4 py-3 text-start text-theme-xs text-gray-500"
                 >
+                  Type
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
                   Description
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
-                >
-                  Current Role
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
-                >
-                  Department
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
-                >
-                  Progress
                 </TableCell>
                 <TableCell
                   isHeader
@@ -822,17 +1179,19 @@ export default function AdminTicketManagement() {
                 </TableRow>
               ) : (
                 paginatedTickets.map((ticket) => {
-                  const needsAction = ticket.status === "CREATED";
-                  const waitingConfirm = ticket.status === "RESOLVED";
+                  const isType2NeedsAction =
+                    ticket.type === "TYPE2" && ticket.status === "CREATED";
+                  const isType3NeedsReview =
+                    ticket.type === "TYPE3" && ticket.status === "RESOLVED";
+                  const needsAction = isType2NeedsAction || isType3NeedsReview;
+
                   return (
                     <TableRow
                       key={ticket.ticket_id}
                       className={
                         needsAction
                           ? "bg-warning-50/40 dark:bg-warning-500/5"
-                          : waitingConfirm
-                            ? "bg-blue-50/30 dark:bg-blue-500/5"
-                            : ""
+                          : ""
                       }
                     >
                       <TableCell className="px-4 py-4">
@@ -845,19 +1204,19 @@ export default function AdminTicketManagement() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="px-4 py-4 text-sm text-gray-500 max-w-[180px] truncate">
-                        {ticket.description}
-                      </TableCell>
-                      <TableCell className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
-                        {ticket.requester?.role ?? "—"}
-                      </TableCell>
-                      <TableCell className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
-                        {ticket.requester?.department?.department_name ?? (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </TableCell>
                       <TableCell className="px-4 py-4">
-                        <FlowProgress status={ticket.status} />
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            ticket.type === "TYPE2"
+                              ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
+                              : "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400"
+                          }`}
+                        >
+                          {TICKET_TYPE_MAP[ticket.type] ?? ticket.type}
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-4 py-4 text-sm text-gray-500 max-w-[200px] truncate">
+                        {ticket.description}
                       </TableCell>
                       <TableCell className="px-4 py-4">
                         <div className="flex items-center gap-2">
@@ -870,9 +1229,6 @@ export default function AdminTicketManagement() {
                           {needsAction && (
                             <span className="flex h-2 w-2 rounded-full bg-warning-500 animate-pulse" />
                           )}
-                          {waitingConfirm && (
-                            <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
-                          )}
                         </div>
                       </TableCell>
                       <TableCell className="px-4 py-4 text-sm text-gray-500">
@@ -884,10 +1240,10 @@ export default function AdminTicketManagement() {
                           variant={needsAction ? "primary" : "outline"}
                           onClick={() => setSelectedTicket(ticket)}
                         >
-                          {needsAction
-                            ? "Review"
-                            : ticket.status === "APPROVED"
-                              ? "Mark Done"
+                          {isType3NeedsReview
+                            ? "Review Dashboard"
+                            : isType2NeedsAction
+                              ? "Review"
                               : "View"}
                         </Button>
                       </TableCell>

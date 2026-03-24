@@ -107,7 +107,6 @@ export default function DashboardManagement() {
   const handleSubmit = async () => {
     try {
       if (editingDashboard) {
-        // UPDATE
         await API.put(`/dashboard/${editingDashboard.dashboard_id}`, {
           dashboard_name: formData.dashboard_name,
           url_path: formData.url_path,
@@ -115,25 +114,21 @@ export default function DashboardManagement() {
         });
         toast.success("Dashboard updated successfully!");
       } else {
-        // CREATE
         await API.post("/dashboard", {
           dashboard_name: formData.dashboard_name,
           url_path: formData.url_path,
           category: formData.category,
         });
+        toast.success("Dashboard created! Awaiting Admin approval."); // ← thông báo rõ hơn
       }
-      const response = await API.get("/dashboard");
-      setFormData({
-        dashboard_name: "",
-        url_path: "",
-        category: "",
-      });
-      setDashboard(response.data.data);
-      toast.success("Dashboard created successfully!");
 
+      const response = await API.get("/dashboard");
+      setDashboard(response.data.data);
+      setFormData({ dashboard_name: "", url_path: "", category: "" });
       handleCloseModal();
     } catch (error) {
       console.error("Submit error:", error);
+      toast.error("Failed to save dashboard.");
     }
   };
   const handleToggleStatus = async (dashboardId: string, status: string) => {
@@ -234,12 +229,13 @@ export default function DashboardManagement() {
                   </TableCell>
                   <TableCell className="px-5 py-4">
                     <span
-                      className={`px-2 py-1 text-xs font-medium rounded-md
-      ${
-        dashboard.status === "ACTIVE"
-          ? "bg-green-100 text-green-700"
-          : "bg-red-100 text-red-700"
-      }`}
+                      className={`px-2 py-1 text-xs font-medium rounded-md ${
+                        dashboard.status === "ACTIVE"
+                          ? "bg-green-100 text-green-700"
+                          : dashboard.status === "DRAFT"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : "bg-red-100 text-red-700"
+                      }`}
                     >
                       {dashboard.status}
                     </span>
@@ -264,7 +260,6 @@ export default function DashboardManagement() {
                             >
                               <Pencil className="size-4" />
                             </Button>
-
                             <Button
                               size="sm"
                               variant="outline"
@@ -277,6 +272,21 @@ export default function DashboardManagement() {
                             >
                               <Trash2 className="size-4 text-red-500" />
                             </Button>
+                          </>
+                        )}
+
+                        {dashboard.status === "DRAFT" && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditClick(dashboard)}
+                            >
+                              <Pencil className="size-4" />
+                            </Button>
+                            <span className="inline-flex items-center rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-1.5 text-xs text-yellow-600 dark:border-yellow-800 dark:bg-yellow-900/20">
+                              Awaiting Admin Review
+                            </span>
                           </>
                         )}
 

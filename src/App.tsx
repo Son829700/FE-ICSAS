@@ -8,7 +8,7 @@ import DepartmentManagement from "./pages/Adminitrator/DepartmentManagement";
 
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
-import Home from "./pages/Dashboard/Home";
+// import Home from "./pages/Dashboard/Home";
 import LogsList from "./pages/Adminitrator/Logs";
 import SupportTicketPage from "./pages/Staff/TicketManagement";
 import GroupManagement from "./pages/BI/GroupManagemnt";
@@ -54,7 +54,7 @@ export default function App() {
               <ProtectedRoute
                 allowedRoles={["STAFF", "MANAGER", "BI", "ADMINISTRATOR"]}
               >
-                <Home />
+                <StaffHome />
               </ProtectedRoute>
             }
           />
@@ -115,7 +115,7 @@ export default function App() {
           <Route
             path="/manager/ticket"
             element={
-              <ProtectedRoute allowedRoles={["MANAGER"]}>
+              <ProtectedRoute allowedRoles={["STAFF"]}>
                 <TicketListManager />
               </ProtectedRoute>
             }
@@ -123,7 +123,7 @@ export default function App() {
           <Route
             path="/manager/ticket/:id"
             element={
-              <ProtectedRoute allowedRoles={["MANAGER"]}>
+              <ProtectedRoute allowedRoles={["STAFF"]}>
                 <TicketDetailManager />
               </ProtectedRoute>
             }

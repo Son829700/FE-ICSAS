@@ -39,7 +39,6 @@ export default function TicketDetailBI() {
         <h2 className="mb-4 text-lg font-semibold">Ticket Details</h2>
 
         <ul className="divide-y dark:divide-gray-800">
-          <DetailRow label="Ticket ID" value={ticket.id} />
           <DetailRow label="Requester" value={ticket.requester} />
           <DetailRow label="Description" value={ticket.description} />
           <DetailRow

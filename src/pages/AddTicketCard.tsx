@@ -140,9 +140,9 @@ export default function AddTicketCard({
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {selectedType?.label}
                 </span>
-                <span className="ml-auto inline-flex items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
+                {/* <span className="ml-auto inline-flex items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
                   {type}
-                </span>
+                </span> */}
               </div>
             </div>
           ) : (

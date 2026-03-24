@@ -32,7 +32,16 @@ interface Ticket {
   description: string;
   dashboard_id: string;
   reason: string;
-  status: "CREATED" | "PENDING" | "APPROVED" | "REJECTED" | "SOLVED";
+  status:
+    | "CREATED"
+    | "APPROVED"
+    | "IN_PROGRESS"
+    | "WAITING_FOR_VERIFICATION"
+    | "VERIFIED"
+    | "RESOLVED"
+    | "REJECTED"
+    | "CANCELLED"
+    | "DONE";
   assigned_staff: User | null;
   approver: User | null;
   createdAt: string;
@@ -50,11 +59,15 @@ const TICKET_TYPE_MAP: Record<string, string> = {
 
 const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> =
   {
-    SOLVED: "success",
-    APPROVED: "success",
-    PENDING: "warning",
-    CREATED: "info",
+    DONE: "success",
+    RESOLVED: "success",
+    VERIFIED: "success",
+    APPROVED: "info",
+    IN_PROGRESS: "info",
+    WAITING_FOR_VERIFICATION: "warning",
+    CREATED: "warning",
     REJECTED: "error",
+    CANCELLED: "error",
   };
 
 /* =======================
@@ -170,8 +183,7 @@ export default function TicketDetailManager() {
     );
   }
 
-  const isAlreadyProcessed =
-    ticket.status !== "PENDING" && ticket.status !== "CREATED";
+  const isAlreadyProcessed = !["CREATED"].includes(ticket.status);
 
   return (
     <>
@@ -194,10 +206,7 @@ export default function TicketDetailManager() {
           </h2>
 
           <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-            <DetailRow
-              label="Ticket ID"
-              value={<span className="font-mono">{ticket.ticket_id}</span>}
-            />
+          
             <DetailRow
               label="Requester"
               value={

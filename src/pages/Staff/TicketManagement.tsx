@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useRef, useState } from "react";
 import API from "../../api";
 import { PlusIcon, Filter } from "lucide-react";
@@ -29,12 +30,15 @@ const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> =
   {
     DONE: "success",
     RESOLVED: "success",
-    APPROVED: "info",
+    VERIFIED: "success",
+    APPROVED: "success",
     IN_PROGRESS: "info",
-    CREATED: "warning",
+    WAITING_FOR_VERIFICATION: "warning",
+    CREATED: "warning", 
     REJECTED: "error",
     CANCELLED: "error",
   };
+
 const PAGE_SIZE = 10;
 
 /* =======================
@@ -62,8 +66,16 @@ interface Ticket {
   type: string;
   description: string;
   dashboard_id: string;
-  reason: string;
-  status: "CREATED" | "APPROVED" | "IN_PROGRESS" | "RESOLVED" | "REJECTED" | "CANCELLED" | "DONE"; 
+  status:
+    | "CREATED"
+    | "APPROVED"
+    | "IN_PROGRESS"
+    | "WAITING_FOR_VERIFICATION"
+    | "VERIFIED"
+    | "RESOLVED"
+    | "REJECTED"
+    | "CANCELLED"
+    | "DONE";
   assigned_staff: User;
   approver: User;
   createdAt: string;
@@ -79,7 +91,7 @@ interface FilterValue {
    MAIN PAGE
 ======================= */
 export default function SupportTicketPage() {
-  const { user } = useAuthContext();
+  const { user, isManager } = useAuthContext();
   const [isOpen, setIsOpen] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [filter, setFilter] = useState<FilterValue>({ type: "", status: "" });
@@ -103,12 +115,27 @@ export default function SupportTicketPage() {
 
   const fetchTickets = async () => {
     if (!user?.user_id) return;
-
     try {
-      const response = await API.get(`/tickets/requester/${user.user_id}`);
+      // Luôn fetch requester
+      const requesterRes = await API.get(`/tickets/requester/${user.user_id}`);
+      let allTickets: Ticket[] = requesterRes.data.data ?? [];
+      console.log(requesterRes)
+      // Nếu là manager → fetch thêm approver và merge
+      if (isManager) {
+        const approverRes = await API.get(`/tickets/approver/${user.user_id}`);
+        const approverTickets: Ticket[] = approverRes.data.data ?? [];
+
+        // Merge + dedup
+        const map = new Map<string, Ticket>();
+        [...allTickets, ...approverTickets].forEach((t) => {
+          map.set(t.ticket_id, t);
+        });
+        allTickets = Array.from(map.values());
+      }
+
       setTickets(
-        response.data.data.sort(
-          (a: Ticket, b: Ticket) =>
+        allTickets.sort(
+          (a, b) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         ),
       );
@@ -117,10 +144,10 @@ export default function SupportTicketPage() {
     }
   };
 
-  // Cập nhật useEffect — thêm user?.user_id vào dependency
+  // Thêm isManager vào dependency
   useEffect(() => {
     fetchTickets();
-  }, []);
+  }, [user?.user_id, isManager]);
 
   const handleSuccess = () => {
     fetchTickets();
@@ -166,6 +193,7 @@ export default function SupportTicketPage() {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onSuccess={handleSuccess}
+        allowedTypes={isManager ? ["TYPE2"] : undefined}
       />
 
       <PageMeta
@@ -406,58 +434,80 @@ export default function SupportTicketPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedTickets.map((ticket) => (
-                    <TableRow key={ticket.ticket_id}>
-                      <TableCell className="px-4 py-4">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-gray-800 dark:text-white">
-                            {ticket.requester?.username}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {ticket.requester?.email}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
-                        {TICKET_TYPE_MAP[ticket.type] ?? ticket.type}
-                      </TableCell>
-                      <TableCell className="px-4 py-4 text-sm text-gray-500 max-w-[200px] truncate">
-                        {ticket.description}
-                      </TableCell>
-                      <TableCell className="px-4 py-4">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-gray-800 dark:text-white">
-                            {ticket.assigned_staff?.username ?? "—"}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {ticket.assigned_staff?.email}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-4 py-4 text-sm text-gray-500">
-                        {new Date(ticket.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="px-4 py-4">
-                        <Badge
-                          size="sm"
-                          color={statusColorMap[ticket.status] ?? "info"}
-                        >
-                          {ticket.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="px-4 py-4 text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            navigate(`/ticket/${ticket.ticket_id}`)
-                          }
-                        >
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  paginatedTickets.map((ticket) => {
+                    const isOwnTicket =
+                      ticket.requester?.user_id === user?.user_id;
+                    const needsReview =
+                      isManager && !isOwnTicket && ticket.status === "CREATED";
+                    return (
+                      <TableRow key={ticket.ticket_id}>
+                        <TableCell className="px-4 py-4">
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-medium text-gray-800 dark:text-white">
+                                {ticket.requester?.username}
+                              </span>
+                              {isOwnTicket && (
+                                <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                                  You
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {ticket.requester?.email}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
+                          {TICKET_TYPE_MAP[ticket.type] ?? ticket.type}
+                        </TableCell>
+                        <TableCell className="px-4 py-4 text-sm text-gray-500 max-w-[200px] truncate">
+                          {ticket.description}
+                        </TableCell>
+                        <TableCell className="px-4 py-4">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-gray-800 dark:text-white">
+                              {ticket.assigned_staff?.username ?? "—"}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {ticket.assigned_staff?.email}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-4 py-4 text-sm text-gray-500">
+                          {new Date(ticket.createdAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="px-4 py-4">
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              size="sm"
+                              color={statusColorMap[ticket.status] ?? "info"}
+                            >
+                              {ticket.status.replace(/_/g, " ")}
+                            </Badge>
+                            {needsReview && (
+                              <span className="flex h-2 w-2 rounded-full bg-warning-500 animate-pulse" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-4 py-4 text-right">
+                          <Button
+                            size="sm"
+                            variant={needsReview ? "primary" : "outline"}
+                            onClick={() => {
+                              if (isManager && !isOwnTicket) {
+                                navigate(`/manager/ticket/${ticket.ticket_id}`); // trang approve
+                              } else {
+                                navigate(`/ticket/${ticket.ticket_id}`); // trang timeline
+                              }
+                            }}
+                          >
+                            {needsReview ? "Review" : "View"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

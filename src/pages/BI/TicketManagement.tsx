@@ -160,12 +160,7 @@ function TicketDetailModal({
         <div className="p-6 space-y-6">
           {/* Ticket Info */}
           <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-            <DetailRow
-              label="Ticket ID"
-              value={
-                <span className="font-mono text-xs">{ticket.ticket_id}</span>
-              }
-            />
+          
             <DetailRow
               label="Requester"
               value={

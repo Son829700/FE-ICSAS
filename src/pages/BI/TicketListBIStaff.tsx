@@ -7,7 +7,11 @@ import PageMeta from "../../components/common/PageMeta";
 import Badge from "../../components/ui/badge/Badge";
 import Button from "../../components/ui/button/Button";
 import {
-  Table, TableBody, TableCell, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableRow,
 } from "../../components/ui/table";
 import toast from "react-hot-toast";
 import { useAuthContext } from "../../context/AuthContext";
@@ -20,14 +24,17 @@ const TICKET_TYPE_MAP: Record<string, string> = {
   TYPE3: "Dashboard Development Request",
 };
 
-const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> = {
-  DONE: "success",
-  RESOLVED: "success",
-  APPROVED: "info",
-  IN_PROGRESS: "warning",
-  REJECTED: "error",
-  CANCELLED: "error",
-};
+const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> =
+  {
+    DONE: "success",
+    RESOLVED: "success",
+    VERIFIED: "success", // ← thêm
+    APPROVED: "info",
+    IN_PROGRESS: "warning",
+    WAITING_FOR_VERIFICATION: "warning", // ← thêm
+    REJECTED: "error",
+    CANCELLED: "error",
+  };
 
 const PAGE_SIZE = 10;
 
@@ -49,7 +56,12 @@ interface User {
   department: Department;
   status: "ACTIVE" | "INACTIVE";
 }
-
+interface Dashboard {
+  dashboard_id: string;
+  dashboard_name: string;
+  status: string;
+  category: string;
+}
 interface Ticket {
   ticket_id: string;
   requester: User;
@@ -57,7 +69,16 @@ interface Ticket {
   description: string;
   dashboard_id: string;
   reason: string;
-  status: "CREATED" | "APPROVED" | "IN_PROGRESS" | "RESOLVED" | "REJECTED" | "CANCELLED" | "DONE";
+  status:
+    | "CREATED"
+    | "APPROVED"
+    | "IN_PROGRESS"
+    | "WAITING_FOR_VERIFICATION" // ← thêm
+    | "VERIFIED" // ← thêm
+    | "RESOLVED"
+    | "REJECTED"
+    | "CANCELLED"
+    | "DONE";
   assigned_staff: User | null;
   approver: User | null;
   createdAt: string;
@@ -72,11 +93,21 @@ interface FilterValue {
 /* =======================
    DETAIL ROW
 ======================= */
-function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
   return (
     <li className="flex gap-4 py-2.5">
-      <span className="w-1/3 shrink-0 text-sm text-gray-500 dark:text-gray-400">{label}</span>
-      <span className="w-2/3 text-sm text-gray-700 dark:text-gray-300">{value}</span>
+      <span className="w-1/3 shrink-0 text-sm text-gray-500 dark:text-gray-400">
+        {label}
+      </span>
+      <span className="w-2/3 text-sm text-gray-700 dark:text-gray-300">
+        {value}
+      </span>
     </li>
   );
 }
@@ -90,9 +121,39 @@ interface TicketDetailModalProps {
   onUpdated: () => void;
 }
 
-function TicketDetailModal({ ticket, onClose, onUpdated }: TicketDetailModalProps) {
+function TicketDetailModal({
+  ticket,
+  onClose,
+  onUpdated,
+}: TicketDetailModalProps) {
   const [currentTicket, setCurrentTicket] = useState<Ticket>(ticket);
   const [submitting, setSubmitting] = useState(false);
+
+  // Thêm state cho TYPE3 submit dashboard
+  const [draftDashboards, setDraftDashboards] = useState<Dashboard[]>([]);
+  const [selectedDashboardId, setSelectedDashboardId] = useState("");
+  const [loadingDashboards, setLoadingDashboards] = useState(false);
+
+  const isType3 = currentTicket.type === "TYPE3";
+
+  // Fetch dashboard DRAFT khi IN_PROGRESS và TYPE3
+  useEffect(() => {
+    if (currentTicket.status === "IN_PROGRESS" && isType3) {
+      const fetchDraftDashboards = async () => {
+        try {
+          setLoadingDashboards(true);
+          const res = await API.get("/dashboard");
+          const all: Dashboard[] = res.data.data ?? [];
+          setDraftDashboards(all.filter((d) => d.status === "DRAFT"));
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setLoadingDashboards(false);
+        }
+      };
+      fetchDraftDashboards();
+    }
+  }, [currentTicket.status, isType3]);
 
   const refetch = async () => {
     const res = await API.get(`/tickets/${currentTicket.ticket_id}`);
@@ -101,7 +162,6 @@ function TicketDetailModal({ ticket, onClose, onUpdated }: TicketDetailModalProp
     onUpdated();
   };
 
-  /* Bắt đầu xử lý → IN_PROGRESS */
   const handleStartProcessing = async () => {
     try {
       setSubmitting(true);
@@ -115,12 +175,14 @@ function TicketDetailModal({ ticket, onClose, onUpdated }: TicketDetailModalProp
     }
   };
 
-  /* Hoàn thành → RESOLVED */
+  // TYPE1: resolve trực tiếp
   const handleResolve = async () => {
     try {
       setSubmitting(true);
       await API.post(`/tickets/${currentTicket.ticket_id}/status/RESOLVED`);
-      toast.success("Ticket marked as resolved! Waiting for requester confirmation.");
+      toast.success(
+        "Ticket marked as resolved! Waiting for requester confirmation.",
+      );
       await refetch();
     } catch (err) {
       toast.error("Failed to resolve ticket.");
@@ -129,8 +191,41 @@ function TicketDetailModal({ ticket, onClose, onUpdated }: TicketDetailModalProp
     }
   };
 
-  const isTerminal = ["RESOLVED", "DONE", "REJECTED", "CANCELLED"].includes(currentTicket.status);
+  // TYPE3: submit dashboard DRAFT
+  const handleSubmitDashboard = async () => {
+    if (!selectedDashboardId) {
+      toast.error("Please select a dashboard to submit.");
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await API.put(
+        `/tickets/submit_result/${currentTicket.ticket_id}/dashboard/${selectedDashboardId}`,
+      );
+      toast.success("Dashboard submitted! Waiting for Admin review.");
+      await refetch();
+    } catch (err) {
+      toast.error("Failed to submit dashboard.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
+  const isTerminal = ["DONE", "VERIFIED", "REJECTED", "CANCELLED"].includes(
+    currentTicket.status,
+  );
+  const handleResolveAfterVerified = async () => {
+    try {
+      setSubmitting(true);
+      await API.post(`/tickets/${currentTicket.ticket_id}/status/RESOLVED`);
+      toast.success("Access granted! Waiting for requester confirmation.");
+      await refetch();
+    } catch (err) {
+      toast.error("Failed to update ticket.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-800 dark:bg-gray-900">
@@ -141,7 +236,10 @@ function TicketDetailModal({ ticket, onClose, onUpdated }: TicketDetailModalProp
               Ticket Details
             </h3>
             <div className="mt-1 flex items-center gap-2">
-              <Badge size="sm" color={statusColorMap[currentTicket.status] ?? "info"}>
+              <Badge
+                size="sm"
+                color={statusColorMap[currentTicket.status] ?? "info"}
+              >
                 {currentTicket.status.replace("_", " ")}
               </Badge>
               <span className="text-xs text-gray-400">
@@ -149,43 +247,64 @@ function TicketDetailModal({ ticket, onClose, onUpdated }: TicketDetailModalProp
               </span>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition"
+          >
             <X className="size-5" />
           </button>
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Info */}
+          {/* Ticket Info */}
           <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-            <DetailRow label="Ticket ID" value={<span className="font-mono text-xs">{currentTicket.ticket_id}</span>} />
+          
             <DetailRow
               label="Requester"
               value={
                 <div className="flex flex-col">
-                  <span className="font-medium">{currentTicket.requester?.username}</span>
-                  <span className="text-xs text-gray-500">{currentTicket.requester?.email}</span>
+                  <span className="font-medium">
+                    {currentTicket.requester?.username}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {currentTicket.requester?.email}
+                  </span>
                 </div>
               }
             />
             <DetailRow
               label="Department"
-              value={currentTicket.requester?.department?.department_name ?? "—"}
+              value={
+                currentTicket.requester?.department?.department_name ?? "—"
+              }
             />
             <DetailRow
               label="Ticket Type"
-              value={<span className="font-medium">{TICKET_TYPE_MAP[currentTicket.type] ?? currentTicket.type}</span>}
+              value={
+                <span className="font-medium">
+                  {TICKET_TYPE_MAP[currentTicket.type] ?? currentTicket.type}
+                </span>
+              }
             />
             <DetailRow
               label="Description"
-              value={<span className="whitespace-pre-wrap">{currentTicket.description}</span>}
+              value={
+                <span className="whitespace-pre-wrap">
+                  {currentTicket.description}
+                </span>
+              }
             />
             <DetailRow
               label="Approver"
               value={
                 currentTicket.approver ? (
                   <div className="flex flex-col">
-                    <span className="font-medium">{currentTicket.approver.username}</span>
-                    <span className="text-xs text-gray-500">{currentTicket.approver.email}</span>
+                    <span className="font-medium">
+                      {currentTicket.approver.username}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {currentTicket.approver.email}
+                    </span>
                   </div>
                 ) : (
                   <span className="text-gray-400">—</span>
@@ -203,85 +322,238 @@ function TicketDetailModal({ ticket, onClose, onUpdated }: TicketDetailModalProp
             {currentTicket.reason && (
               <DetailRow
                 label="Reason"
-                value={<span className="text-error-500">{currentTicket.reason}</span>}
+                value={
+                  <span className="text-error-500">{currentTicket.reason}</span>
+                }
               />
             )}
           </ul>
 
-          {/* ACTION SECTION */}
+          {/* ===== ACTIONS ===== */}
+
+          {/* APPROVED → Start */}
           {currentTicket.status === "APPROVED" && (
             <div className="rounded-xl border border-brand-200 bg-brand-50 p-5 dark:border-brand-800 dark:bg-brand-900/10 space-y-3">
               <h4 className="text-sm font-semibold text-brand-700 dark:text-brand-400">
-                Ready to start?
+                New Assignment
               </h4>
               <p className="text-sm text-brand-600 dark:text-brand-300">
-                This ticket has been assigned to you. Click below to start processing it.
+                This ticket has been assigned to you. Click below to start
+                processing.
               </p>
               <button
                 onClick={handleStartProcessing}
                 disabled={submitting}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 transition"
               >
-                {submitting ? <Loader2 className="size-4 animate-spin" /> : null}
+                {submitting && <Loader2 className="size-4 animate-spin" />}
                 {submitting ? "Updating..." : "Start Processing"}
               </button>
             </div>
           )}
 
-          {currentTicket.status === "IN_PROGRESS" && (
+          {/* IN_PROGRESS — TYPE1: grant access rồi resolve */}
+          {currentTicket.status === "IN_PROGRESS" && !isType3 && (
             <div className="rounded-xl border border-warning-200 bg-warning-50 p-5 dark:border-warning-800 dark:bg-warning-900/10 space-y-3">
               <h4 className="text-sm font-semibold text-warning-700 dark:text-warning-400">
-                In Progress
+                In Progress — Dashboard Access Request
               </h4>
               <p className="text-sm text-warning-600 dark:text-warning-300">
-                {currentTicket.type === "TYPE1"
-                  ? "Grant the requester access to the requested dashboard, then mark as resolved."
-                  : "Complete the dashboard development, then mark as resolved for the requester to confirm."}
+                Grant the requester access to the requested dashboard, then mark
+                as resolved.
               </p>
               <button
                 onClick={handleResolve}
                 disabled={submitting}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-success-500 py-2.5 text-sm font-medium text-white hover:bg-success-600 disabled:opacity-50 transition"
               >
-                {submitting
-                  ? <Loader2 className="size-4 animate-spin" />
-                  : <CheckCheck className="size-4" />
-                }
+                {submitting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <CheckCheck className="size-4" />
+                )}
                 {submitting ? "Updating..." : "Mark as Resolved"}
               </button>
             </div>
           )}
 
-          {currentTicket.status === "RESOLVED" && (
-            <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 dark:border-blue-800 dark:bg-blue-900/10">
-              <p className="text-sm font-medium text-blue-700 dark:text-blue-400">
-                ⏳ Waiting for requester confirmation
+          {/* IN_PROGRESS — TYPE3: chọn dashboard DRAFT và submit */}
+          {currentTicket.status === "IN_PROGRESS" && isType3 && (
+            <div className="rounded-xl border border-warning-200 bg-warning-50 p-5 dark:border-warning-800 dark:bg-warning-900/10 space-y-4">
+              <h4 className="text-sm font-semibold text-warning-700 dark:text-warning-400">
+                In Progress — Dashboard Development
+              </h4>
+
+              <ol className="space-y-1 text-sm text-warning-600 dark:text-warning-300 list-decimal ml-4">
+                <li>
+                  Go to <strong>Dashboard Management</strong> and create the
+                  requested dashboard (it will be{" "}
+                  <code className="rounded bg-warning-100 px-1 text-xs dark:bg-warning-900/40">
+                    DRAFT
+                  </code>{" "}
+                  by default)
+                </li>
+                <li>
+                  Come back here, select the DRAFT dashboard below and click{" "}
+                  <strong>Submit</strong>
+                </li>
+              </ol>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-warning-700 dark:text-warning-400">
+                  Select Dashboard Draft <span className="text-red-500">*</span>
+                </label>
+
+                {loadingDashboards ? (
+                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <Loader2 className="size-3.5 animate-spin" />
+                    Loading dashboards...
+                  </div>
+                ) : draftDashboards.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-warning-300 bg-white px-4 py-3 dark:border-warning-700 dark:bg-gray-900">
+                    <p className="text-xs text-gray-400 text-center">
+                      No DRAFT dashboards found. Create one in Dashboard
+                      Management first.
+                    </p>
+                  </div>
+                ) : (
+                  <select
+                    value={selectedDashboardId}
+                    onChange={(e) => setSelectedDashboardId(e.target.value)}
+                    className="h-10 w-full rounded-lg border border-warning-300 bg-white px-3 text-sm outline-none focus:border-brand-500 dark:border-warning-700 dark:bg-gray-800 dark:text-gray-300"
+                  >
+                    <option value="">-- Select dashboard draft --</option>
+                    {draftDashboards.map((d) => (
+                      <option key={d.dashboard_id} value={d.dashboard_id}>
+                        {d.dashboard_name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <button
+                onClick={handleSubmitDashboard}
+                disabled={!selectedDashboardId || submitting}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 transition"
+              >
+                {submitting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <CheckCheck className="size-4" />
+                )}
+                {submitting
+                  ? "Submitting..."
+                  : "Submit Dashboard for Admin Review"}
+              </button>
+            </div>
+          )}
+          {/* WAITING_FOR_VERIFICATION — chờ Admin */}
+          {currentTicket.status === "WAITING_FOR_VERIFICATION" && (
+            <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-4 dark:border-yellow-800 dark:bg-yellow-900/10">
+              <p className="text-sm font-medium text-yellow-700 dark:text-yellow-400">
+                ⏳ Waiting for Admin to verify the dashboard
               </p>
-              <p className="mt-1 text-xs text-blue-500 dark:text-blue-300">
-                The requester needs to verify and confirm completion.
+              <p className="mt-1 text-xs text-yellow-500 dark:text-yellow-300">
+                Admin is reviewing your submitted dashboard draft.
               </p>
             </div>
           )}
 
+          {/* VERIFIED — Admin đã duyệt, BI Staff grant access rồi resolve */}
+          {currentTicket.status === "VERIFIED" && (
+            <div className="rounded-xl border border-success-200 bg-success-50 p-5 dark:border-success-800 dark:bg-success-900/10 space-y-3">
+              <h4 className="text-sm font-semibold text-success-700 dark:text-success-400">
+                ✅ Dashboard Verified by Admin
+              </h4>
+              <p className="text-sm text-success-600 dark:text-success-300">
+                The dashboard has been approved. Grant the requester access to
+                the dashboard, then mark as resolved.
+              </p>
+              <div className="rounded-lg border border-success-100 bg-white px-3 py-2 dark:border-success-900 dark:bg-gray-900">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  Grant access to:
+                </p>
+                <p className="text-sm font-medium text-gray-800 dark:text-white">
+                  {currentTicket.requester?.username}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {currentTicket.requester?.email}
+                </p>
+              </div>
+              <button
+                onClick={handleResolveAfterVerified}
+                disabled={submitting}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-success-500 py-2.5 text-sm font-medium text-white hover:bg-success-600 disabled:opacity-50 transition"
+              >
+                {submitting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <CheckCheck className="size-4" />
+                )}
+                {submitting ? "Updating..." : "Grant Access & Mark Resolved"}
+              </button>
+            </div>
+          )}
+
+          {/* RESOLVED — chờ user confirm */}
+          {currentTicket.status === "RESOLVED" && (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 dark:border-blue-800 dark:bg-blue-900/10">
+              <p className="text-sm font-medium text-blue-700 dark:text-blue-400">
+                ⏳{" "}
+                {isType3
+                  ? "Waiting for requester to confirm"
+                  : "Waiting for requester confirmation"}
+              </p>
+              <p className="mt-1 text-xs text-blue-500 dark:text-blue-300">
+                The requester needs to confirm completion.
+              </p>
+            </div>
+          )}
+
+          {/* RESOLVED */}
+          {currentTicket.status === "RESOLVED" && (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 dark:border-blue-800 dark:bg-blue-900/10">
+              <p className="text-sm font-medium text-blue-700 dark:text-blue-400">
+                ⏳{" "}
+                {isType3
+                  ? "Waiting for Admin to review the dashboard draft"
+                  : "Waiting for requester confirmation"}
+              </p>
+              <p className="mt-1 text-xs text-blue-500 dark:text-blue-300">
+                {isType3
+                  ? "Admin will approve or send back for revision."
+                  : "The requester needs to verify and confirm completion."}
+              </p>
+            </div>
+          )}
+
+          {/* TERMINAL */}
           {isTerminal && currentTicket.status !== "RESOLVED" && (
-            <div className={`rounded-xl border px-4 py-3 ${
-              currentTicket.status === "DONE"
-                ? "border-success-200 bg-success-50 dark:border-success-800 dark:bg-success-900/10"
-                : "border-error-200 bg-error-50 dark:border-error-800 dark:bg-error-900/10"
-            }`}>
-              <p className={`text-sm font-medium ${
+            <div
+              className={`rounded-xl border px-4 py-3 ${
                 currentTicket.status === "DONE"
-                  ? "text-success-700 dark:text-success-400"
-                  : "text-error-600 dark:text-error-400"
-              }`}>
+                  ? "border-success-200 bg-success-50 dark:border-success-800 dark:bg-success-900/10"
+                  : "border-error-200 bg-error-50 dark:border-error-800 dark:bg-error-900/10"
+              }`}
+            >
+              <p
+                className={`text-sm font-medium ${
+                  currentTicket.status === "DONE"
+                    ? "text-success-700 dark:text-success-400"
+                    : "text-error-600 dark:text-error-400"
+                }`}
+              >
                 {currentTicket.status === "DONE"
-                  ? "✅ Ticket completed successfully."
+                  ? "Ticket completed successfully."
                   : currentTicket.status === "REJECTED"
-                  ? "❌ This ticket has been rejected."
-                  : "🚫 This ticket has been cancelled."}
+                    ? "This ticket has been rejected."
+                    : "This ticket has been cancelled."}
               </p>
               {currentTicket.reason && (
-                <p className="mt-1 text-sm text-error-500">Reason: {currentTicket.reason}</p>
+                <p className="mt-1 text-sm text-error-500">
+                  Reason: {currentTicket.reason}
+                </p>
               )}
             </div>
           )}
@@ -305,7 +577,10 @@ export default function TicketListBIStaff() {
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setFilterOpen(false);
       }
     };
@@ -323,8 +598,9 @@ export default function TicketListBIStaff() {
       setTickets(
         all
           .filter((t) => t.type === "TYPE1" || t.type === "TYPE3")
-          .sort((a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
           ),
       );
     } catch (error) {
@@ -356,7 +632,12 @@ export default function TicketListBIStaff() {
   /* Stats */
   const totalTickets = tickets.length;
   const activeTickets = tickets.filter((t) =>
-    ["APPROVED", "IN_PROGRESS"].includes(t.status),
+    [
+      "APPROVED",
+      "IN_PROGRESS",
+      "WAITING_FOR_VERIFICATION",
+      "VERIFIED",
+    ].includes(t.status),
   ).length;
   const resolvedTickets = tickets.filter((t) =>
     ["RESOLVED", "DONE"].includes(t.status),
@@ -378,7 +659,10 @@ export default function TicketListBIStaff() {
         />
       )}
 
-      <PageMeta title="My Assigned Tickets | BI Staff" description="Process your assigned tickets" />
+      <PageMeta
+        title="My Assigned Tickets | BI Staff"
+        description="Process your assigned tickets"
+      />
 
       {/* STATS */}
       <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -386,7 +670,9 @@ export default function TicketListBIStaff() {
           <h3 className="text-2xl font-bold text-gray-800 dark:text-white/90">
             {totalTickets.toLocaleString()}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">All assigned tickets</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            All assigned tickets
+          </p>
         </ComponentCard>
         <ComponentCard title="Active">
           <h3 className="text-2xl font-bold text-brand-500">
@@ -394,7 +680,10 @@ export default function TicketListBIStaff() {
           </h3>
           <div className="mt-1 flex flex-wrap gap-1">
             {(["APPROVED", "IN_PROGRESS"] as const).map((s) => (
-              <span key={s} className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
+              <span
+                key={s}
+                className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
+              >
                 {s.replace("_", " ")}
                 <span className="ml-1 font-bold">
                   {tickets.filter((t) => t.status === s).length}
@@ -409,7 +698,10 @@ export default function TicketListBIStaff() {
           </h3>
           <div className="mt-1 flex flex-wrap gap-1">
             {(["RESOLVED", "DONE"] as const).map((s) => (
-              <span key={s} className="inline-flex items-center rounded-full bg-success-50 px-2 py-0.5 text-xs font-medium text-success-600 dark:bg-success-500/10 dark:text-success-400">
+              <span
+                key={s}
+                className="inline-flex items-center rounded-full bg-success-50 px-2 py-0.5 text-xs font-medium text-success-600 dark:bg-success-500/10 dark:text-success-400"
+              >
                 {s}
                 <span className="ml-1 font-bold">
                   {tickets.filter((t) => t.status === s).length}
@@ -424,7 +716,10 @@ export default function TicketListBIStaff() {
           </h3>
           <div className="mt-1 flex flex-wrap gap-1">
             {(["REJECTED", "CANCELLED"] as const).map((s) => (
-              <span key={s} className="inline-flex items-center rounded-full bg-error-50 px-2 py-0.5 text-xs font-medium text-error-600 dark:bg-error-500/10 dark:text-error-400">
+              <span
+                key={s}
+                className="inline-flex items-center rounded-full bg-error-50 px-2 py-0.5 text-xs font-medium text-error-600 dark:bg-error-500/10 dark:text-error-400"
+              >
                 {s}
                 <span className="ml-1 font-bold">
                   {tickets.filter((t) => t.status === s).length}
@@ -469,7 +764,9 @@ export default function TicketListBIStaff() {
                   </label>
                   <select
                     value={filter.type}
-                    onChange={(e) => handleFilterChange({ type: e.target.value })}
+                    onChange={(e) =>
+                      handleFilterChange({ type: e.target.value })
+                    }
                     className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
                   >
                     <option value="">All</option>
@@ -483,7 +780,9 @@ export default function TicketListBIStaff() {
                   </label>
                   <select
                     value={filter.status}
-                    onChange={(e) => handleFilterChange({ status: e.target.value })}
+                    onChange={(e) =>
+                      handleFilterChange({ status: e.target.value })
+                    }
                     className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
                   >
                     <option value="">All</option>
@@ -491,13 +790,20 @@ export default function TicketListBIStaff() {
                     <option value="IN_PROGRESS">In Progress</option>
                     <option value="RESOLVED">Resolved</option>
                     <option value="DONE">Done</option>
+                    <option value="WAITING_FOR_VERIFICATION">
+                      Waiting Verification
+                    </option>
+                    <option value="VERIFIED">Verified</option>
                     <option value="REJECTED">Rejected</option>
                     <option value="CANCELLED">Cancelled</option>
                   </select>
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => { handleFilterChange({ type: "", status: "" }); setFilterOpen(false); }}
+                    onClick={() => {
+                      handleFilterChange({ type: "", status: "" });
+                      setFilterOpen(false);
+                    }}
                     className="h-10 flex-1 rounded-lg border border-gray-300 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 transition"
                   >
                     Reset
@@ -519,13 +825,48 @@ export default function TicketListBIStaff() {
           <Table>
             <TableHeader className="border-y border-gray-100 dark:border-white/[0.05]">
               <TableRow>
-                <TableCell isHeader className="px-4 py-3 text-start text-theme-xs text-gray-500">Requested By</TableCell>
-                <TableCell isHeader className="px-4 py-3 text-start text-theme-xs text-gray-500">Type</TableCell>
-                <TableCell isHeader className="px-4 py-3 text-start text-theme-xs text-gray-500">Description</TableCell>
-                <TableCell isHeader className="px-4 py-3 text-start text-theme-xs text-gray-500">Department</TableCell>
-                <TableCell isHeader className="px-4 py-3 text-start text-theme-xs text-gray-500">Created</TableCell>
-                <TableCell isHeader className="px-4 py-3 text-start text-theme-xs text-gray-500">Status</TableCell>
-                <TableCell isHeader className="px-4 py-3 text-right text-theme-xs text-gray-500">Action</TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Requested By
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Type
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Description
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Department
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Created
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Status
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-right text-theme-xs text-gray-500"
+                >
+                  Action
+                </TableCell>
               </TableRow>
             </TableHeader>
 
@@ -547,8 +888,8 @@ export default function TicketListBIStaff() {
                         needsAction
                           ? "bg-brand-50/30 dark:bg-brand-500/5"
                           : inProgress
-                          ? "bg-warning-50/30 dark:bg-warning-500/5"
-                          : ""
+                            ? "bg-warning-50/30 dark:bg-warning-500/5"
+                            : ""
                       }
                     >
                       <TableCell className="px-4 py-4">
@@ -556,7 +897,9 @@ export default function TicketListBIStaff() {
                           <span className="font-medium text-gray-800 dark:text-white">
                             {ticket.requester?.username}
                           </span>
-                          <span className="text-xs text-gray-500">{ticket.requester?.email}</span>
+                          <span className="text-xs text-gray-500">
+                            {ticket.requester?.email}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
@@ -573,7 +916,10 @@ export default function TicketListBIStaff() {
                       </TableCell>
                       <TableCell className="px-4 py-4">
                         <div className="flex items-center gap-2">
-                          <Badge size="sm" color={statusColorMap[ticket.status] ?? "info"}>
+                          <Badge
+                            size="sm"
+                            color={statusColorMap[ticket.status] ?? "info"}
+                          >
                             {ticket.status.replace("_", " ")}
                           </Badge>
                           {needsAction && (
@@ -590,7 +936,11 @@ export default function TicketListBIStaff() {
                           variant={needsAction ? "primary" : "outline"}
                           onClick={() => setSelectedTicket(ticket)}
                         >
-                          {needsAction ? "Start" : inProgress ? "Process" : "View"}
+                          {needsAction
+                            ? "Start"
+                            : inProgress
+                              ? "Process"
+                              : "View"}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -608,33 +958,48 @@ export default function TicketListBIStaff() {
               Showing{" "}
               <span className="font-medium text-gray-700 dark:text-gray-300">
                 {filteredTickets.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}
-              </span>{" "}–{" "}
+              </span>{" "}
+              –{" "}
               <span className="font-medium text-gray-700 dark:text-gray-300">
                 {Math.min(page * PAGE_SIZE, filteredTickets.length)}
-              </span>{" "}of{" "}
+              </span>{" "}
+              of{" "}
               <span className="font-medium text-gray-700 dark:text-gray-300">
                 {filteredTickets.length}
-              </span>{" "}tickets
+              </span>{" "}
+              tickets
             </p>
             <div className="flex items-center gap-2">
-              <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}
-                className="rounded-lg bg-white px-4 py-2.5 text-sm ring-1 ring-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:bg-gray-800 dark:ring-gray-700">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="rounded-lg bg-white px-4 py-2.5 text-sm ring-1 ring-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:bg-gray-800 dark:ring-gray-700"
+              >
                 Previous
               </button>
               <ul className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <li key={p}>
-                    <button onClick={() => setPage(p)}
-                      className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${
-                        page === p ? "bg-brand-500 text-white" : "text-gray-700 hover:bg-brand-500/10 dark:text-gray-400"
-                      }`}>
-                      {p}
-                    </button>
-                  </li>
-                ))}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (p) => (
+                    <li key={p}>
+                      <button
+                        onClick={() => setPage(p)}
+                        className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${
+                          page === p
+                            ? "bg-brand-500 text-white"
+                            : "text-gray-700 hover:bg-brand-500/10 dark:text-gray-400"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    </li>
+                  ),
+                )}
               </ul>
-              <button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}
-                className="rounded-lg bg-white px-4 py-2.5 text-sm ring-1 ring-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:bg-gray-800 dark:ring-gray-700">
+              <button
+                disabled={page === totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="rounded-lg bg-white px-4 py-2.5 text-sm ring-1 ring-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:bg-gray-800 dark:ring-gray-700"
+              >
                 Next
               </button>
             </div>

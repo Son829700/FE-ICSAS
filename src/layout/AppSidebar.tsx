@@ -46,12 +46,17 @@ type NavItem = {
   }[];
 };
 
+/* =======================
+   BASE NAV ITEMS
+   Không còn role MANAGER
+   BI ticket filter động theo isManager
+======================= */
 const navItems: NavItem[] = [
   {
     name: "Dashboard",
     icon: <GridIcon />,
     path: "/",
-    roles: ["ADMINISTRATOR", "MANAGER", "STAFF", "BI"],
+    roles: ["ADMINISTRATOR", "STAFF", "BI"],
   },
 
   // ADMINISTRATOR
@@ -80,73 +85,71 @@ const navItems: NavItem[] = [
     roles: ["ADMINISTRATOR"],
   },
 
-  // MANAGER
-  {
-    name: "Ticket Management",
-    icon: <ClipboardList />,
-    path: "/manager/ticket",
-    roles: ["MANAGER"],
-  },
-
   // STAFF
   {
-    name: "My Ticket",
+    name: "Ticket Management",
     icon: <Ticket />,
     path: "/ticket",
     roles: ["STAFF"],
   },
 
-  // BI
-
+  // BI — cả 2, sẽ filter động theo isManager
   {
     name: "Dashboard Management",
     icon: <BarChart3 />,
     path: "/dashboard",
     roles: ["BI"],
   },
-  {
-    name: "Group Management",
-    icon: <Layers />,
-    path: "/group",
-    roles: ["BI"],
-  },
+  { name: "Group Management", icon: <Layers />, path: "/group", roles: ["BI"] },
   {
     name: "Ticket Management",
     icon: <TableIcon />,
     path: "/BI/ticket",
     roles: ["BI"],
-  },
+  }, // chỉ hiện nếu isManager
   {
     name: "My Tickets",
     icon: <Ticket />,
     path: "/BI/my-ticket",
     roles: ["BI"],
-  },
+  }, // chỉ hiện nếu !isManager
 ];
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
-  const { user } = useAuthContext();
+  const { user, isManager } = useAuthContext();
   const role = user?.role;
   const [userDashboards, setUserDashboards] = useState<Dashboard[]>([]);
+  const [hasApproverTickets, setHasApproverTickets] = useState(false);
 
-  const filterMenuByRole = (items: NavItem[]) => {
-    if (!role) return [];
-    return items.filter((item) => {
-      if (!item.roles) return true;
-      return item.roles.includes(role);
-    });
-  };
+  /* =====================
+     Check STAFF có phải manager không
+     bằng cách gọi /tickets/approver/{id}
+  ===================== */
+  useEffect(() => {
+    const checkApproverTickets = async () => {
+      if (role !== "STAFF" || !user?.user_id) return;
+      try {
+        const res = await API.get(`/tickets/approver/${user.user_id}`);
+        const tickets = res.data.data ?? [];
+        setHasApproverTickets(tickets.length > 0);
+      } catch {
+        setHasApproverTickets(false);
+      }
+    };
+    checkApproverTickets();
+  }, [user?.user_id, role]);
 
-  /* Fetch dashboards cho STAFF, MANAGER, BI */
+  /* =====================
+     Fetch dashboards
+  ===================== */
   useEffect(() => {
     const fetchDashboards = async () => {
       try {
         if (!user?.user_id) return;
 
         if (role === "STAFF") {
-          // Lấy dashboards qua group của user
           const groupRes = await API.get(
             `/groups/groups-by-user/${user.user_id}`,
           );
@@ -167,19 +170,13 @@ const AppSidebar: React.FC = () => {
             .flatMap((res) => res.data.data)
             .filter((d: Dashboard) => d.status === "ACTIVE");
 
-          // Dedup
           const map = new Map<string, Dashboard>();
           allDashboards.forEach((d: Dashboard) => {
             if (!map.has(d.dashboard_id)) map.set(d.dashboard_id, d);
           });
 
           setUserDashboards(Array.from(map.values()));
-        } else if (
-          role === "BI" ||
-          role === "ADMINISTRATOR" ||
-          role === "MANAGER"
-        ) {
-          // BI lấy tất cả dashboard active
+        } else if (role === "BI" || role === "ADMINISTRATOR") {
           const res = await API.get("/dashboard");
           const all: Dashboard[] = res.data.data;
           setUserDashboards(all.filter((d) => d.status === "ACTIVE"));
@@ -192,35 +189,48 @@ const AppSidebar: React.FC = () => {
     fetchDashboards();
   }, [user, role]);
 
-  /* Build dynamic nav items */
-  const dynamicNavItems = navItems.map((item) => {
-    if (
-      item.name === "Dashboard" &&
-      (role === "STAFF" ||
-        role === "MANAGER" ||
-        role === "BI" ||
-        role === "ADMINISTRATOR")
-    ) {
-      if (userDashboards.length > 0) {
-        return {
-          ...item,
-          path: undefined, // không navigate khi có subItems
-          subItems: userDashboards.map((d) => ({
-            name: d.dashboard_name,
-            path: `/dashboard/${d.dashboard_id}`,
-          })),
-        };
-      }
-      return {
-        ...item,
-        subItems: undefined,
-        path: "/",
-      };
-    }
-    return item;
-  });
+  /* =====================
+     Build dynamic nav items
+  ===================== */
+  const buildNavItems = (): NavItem[] => {
+    // 1. Filter theo role
+    const roleFiltered = navItems.filter((item) => {
+      if (!item.roles) return true;
+      return item.roles.includes(role ?? "");
+    });
 
-  const filteredNavItems = filterMenuByRole(dynamicNavItems);
+    // 2. Filter BI ticket items theo isManager
+    const biFiltered = roleFiltered.filter((item) => {
+      if (role === "BI") {
+        if (item.path === "/BI/ticket") return isManager; // chỉ BI manager
+        if (item.path === "/BI/my-ticket") return !isManager; // chỉ BI staff
+      }
+      return true;
+    });
+
+    // 3. Inject manager ticket cho STAFF nếu có approver tickets
+    const withManagerTicket = [...biFiltered];
+    
+    // 4. Build dynamic dashboard submenu
+    return withManagerTicket.map((item) => {
+      if (item.name === "Dashboard") {
+        if (userDashboards.length > 0) {
+          return {
+            ...item,
+            path: undefined,
+            subItems: userDashboards.map((d) => ({
+              name: d.dashboard_name,
+              path: `/dashboard/${d.dashboard_id}`,
+            })),
+          };
+        }
+        return { ...item, subItems: undefined, path: "/" };
+      }
+      return item;
+    });
+  };
+
+  const finalNavItems = buildNavItems();
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main";
@@ -238,7 +248,7 @@ const AppSidebar: React.FC = () => {
 
   useEffect(() => {
     let submenuMatched = false;
-    filteredNavItems.forEach((nav, index) => {
+    finalNavItems.forEach((nav, index) => {
       if (nav.subItems) {
         nav.subItems.forEach((subItem) => {
           if (isActive(subItem.path)) {
@@ -253,7 +263,7 @@ const AppSidebar: React.FC = () => {
 
   useEffect(() => {
     if (openSubmenu !== null) {
-      const key = `${openSubmenu.type}-${openSubmenu.index}`;
+      const key = `main-${openSubmenu.index}`;
       if (subMenuRefs.current[key]) {
         setSubMenuHeight((prev) => ({
           ...prev,
@@ -273,7 +283,7 @@ const AppSidebar: React.FC = () => {
   const renderMenuItems = (items: NavItem[]) => (
     <ul className="flex flex-col gap-4">
       {items.map((nav, index) => (
-        <li key={nav.name}>
+        <li key={nav.name + (nav.path ?? "")}>
           {nav.subItems ? (
             <button
               onClick={() => handleSubmenuToggle(index)}
@@ -427,7 +437,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots className="size-6" />
                 )}
               </h2>
-              {renderMenuItems(filteredNavItems)}
+              {renderMenuItems(finalNavItems)}
             </div>
           </div>
         </nav>
