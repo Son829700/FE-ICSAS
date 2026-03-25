@@ -6,7 +6,6 @@ import { useAuthContext } from "../context/AuthContext";
 import {
   BarChart3,
   Building2,
-  ClipboardList,
   FileText,
   Layers,
   Ticket,
@@ -46,11 +45,6 @@ type NavItem = {
   }[];
 };
 
-/* =======================
-   BASE NAV ITEMS
-   Không còn role MANAGER
-   BI ticket filter động theo isManager
-======================= */
 const navItems: NavItem[] = [
   {
     name: "Dashboard",
@@ -93,14 +87,19 @@ const navItems: NavItem[] = [
     roles: ["STAFF"],
   },
 
-  // BI — cả 2, sẽ filter động theo isManager
+  // BI
   {
     name: "Dashboard Management",
     icon: <BarChart3 />,
     path: "/dashboard",
     roles: ["BI"],
   },
-  { name: "Group Management", icon: <Layers />, path: "/group", roles: ["BI"] },
+  {
+    name: "Group Management",
+    icon: <Layers />,
+    path: "/group",
+    roles: ["BI"],
+  },
   {
     name: "Ticket Management",
     icon: <TableIcon />,
@@ -121,73 +120,52 @@ const AppSidebar: React.FC = () => {
   const { user, isManager } = useAuthContext();
   const role = user?.role;
   const [userDashboards, setUserDashboards] = useState<Dashboard[]>([]);
-  const [hasApproverTickets, setHasApproverTickets] = useState(false);
 
   /* =====================
-     Check STAFF có phải manager không
-     bằng cách gọi /tickets/approver/{id}
-  ===================== */
-  useEffect(() => {
-    const checkApproverTickets = async () => {
-      if (role !== "STAFF" || !user?.user_id) return;
-      try {
-        const res = await API.get(`/tickets/approver/${user.user_id}`);
-        const tickets = res.data.data ?? [];
-        setHasApproverTickets(tickets.length > 0);
-      } catch {
-        setHasApproverTickets(false);
-      }
-    };
-    checkApproverTickets();
-  }, [user?.user_id, role]);
-
-  /* =====================
-     Fetch dashboards
+     Fetch dashboards qua group cho TẤT CẢ user
+     (STAFF, BI, ADMINISTRATOR đều dùng group-based access)
   ===================== */
   useEffect(() => {
     const fetchDashboards = async () => {
       try {
         if (!user?.user_id) return;
 
-        if (role === "STAFF") {
-          const groupRes = await API.get(
-            `/groups/groups-by-user/${user.user_id}`,
-          );
-          const groups: Group[] = groupRes.data.data;
+        // Tất cả role đều lấy dashboard qua group được assign
+        const groupRes = await API.get(
+          `/groups/groups-by-user/${user.user_id}`,
+        );
+        const groups: Group[] = groupRes.data.data ?? [];
 
-          if (!groups.length) {
-            setUserDashboards([]);
-            return;
-          }
-
-          const responses = await Promise.all(
-            groups.map((g) =>
-              API.get(`/dashboard/group-access/group/${g.group_id}`),
-            ),
-          );
-
-          const allDashboards = responses
-            .flatMap((res) => res.data.data)
-            .filter((d: Dashboard) => d.status === "ACTIVE");
-
-          const map = new Map<string, Dashboard>();
-          allDashboards.forEach((d: Dashboard) => {
-            if (!map.has(d.dashboard_id)) map.set(d.dashboard_id, d);
-          });
-
-          setUserDashboards(Array.from(map.values()));
-        } else if (role === "BI" || role === "ADMINISTRATOR") {
-          const res = await API.get("/dashboard");
-          const all: Dashboard[] = res.data.data;
-          setUserDashboards(all.filter((d) => d.status === "ACTIVE"));
+        if (!groups.length) {
+          setUserDashboards([]);
+          return;
         }
+
+        const responses = await Promise.all(
+          groups.map((g) =>
+            API.get(`/dashboard/group-access/group/${g.group_id}`),
+          ),
+        );
+
+        const allDashboards = responses
+          .flatMap((res) => res.data.data ?? [])
+          .filter((d: Dashboard) => d.status === "ACTIVE");
+
+        // Deduplicate
+        const map = new Map<string, Dashboard>();
+        allDashboards.forEach((d: Dashboard) => {
+          if (!map.has(d.dashboard_id)) map.set(d.dashboard_id, d);
+        });
+
+        setUserDashboards(Array.from(map.values()));
       } catch (err) {
         console.error("Fetch dashboards error:", err);
+        setUserDashboards([]);
       }
     };
 
     fetchDashboards();
-  }, [user, role]);
+  }, [user?.user_id, role]);
 
   /* =====================
      Build dynamic nav items
@@ -202,17 +180,14 @@ const AppSidebar: React.FC = () => {
     // 2. Filter BI ticket items theo isManager
     const biFiltered = roleFiltered.filter((item) => {
       if (role === "BI") {
-        if (item.path === "/BI/ticket") return isManager; // chỉ BI manager
-        if (item.path === "/BI/my-ticket") return !isManager; // chỉ BI staff
+        if (item.path === "/BI/ticket") return isManager;
+        if (item.path === "/BI/my-ticket") return !isManager;
       }
       return true;
     });
 
-    // 3. Inject manager ticket cho STAFF nếu có approver tickets
-    const withManagerTicket = [...biFiltered];
-    
-    // 4. Build dynamic dashboard submenu
-    return withManagerTicket.map((item) => {
+    // 3. Build dynamic dashboard submenu
+    return biFiltered.map((item) => {
       if (item.name === "Dashboard") {
         if (userDashboards.length > 0) {
           return {

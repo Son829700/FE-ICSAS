@@ -119,7 +119,6 @@ export default function SupportTicketPage() {
       // Luôn fetch requester
       const requesterRes = await API.get(`/tickets/requester/${user.user_id}`);
       let allTickets: Ticket[] = requesterRes.data.data ?? [];
-      console.log(requesterRes)
       // Nếu là manager → fetch thêm approver và merge
       if (isManager) {
         const approverRes = await API.get(`/tickets/approver/${user.user_id}`);

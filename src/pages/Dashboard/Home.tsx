@@ -1,4 +1,4 @@
-import AdminHome from "../Adminitrator/Home";
+import AdminHome from "../Administrator/Home";
 import StaffHome from "../Staff/Home";
 import BIHome from "../BI/Home";
 import ManagerHome from "../Manager/Home";

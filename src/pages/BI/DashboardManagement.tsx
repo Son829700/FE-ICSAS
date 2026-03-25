@@ -72,7 +72,6 @@ export default function DashboardManagement() {
       try {
         const response = await API.get("/dashboard");
         setDashboard(response.data.data);
-        console.log("API response:", response.data);
       } catch (error) {
         console.error("Fetch error in DashboardManagement:", error);
       }

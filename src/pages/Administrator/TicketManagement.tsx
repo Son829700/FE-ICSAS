@@ -924,7 +924,6 @@ export default function AdminTicketManagement() {
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
       setTickets(merged);
-      console.log(tickets);
     } catch (error) {
       console.error("Fetch error:", error);
     }
@@ -941,7 +940,6 @@ export default function AdminTicketManagement() {
 
   useEffect(() => {
     fetchTickets();
-    console.log(tickets);
     fetchDepartments();
   }, []);
 

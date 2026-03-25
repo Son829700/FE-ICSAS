@@ -92,6 +92,7 @@ export default function OAuth2RedirectHandler() {
       setSubmitting(true);
 
       await API.post("/tickets/ticket_type2", {
+        type : "TYPE2",
         description: `${description.trim()}\n\nRequested Department: ${dept?.department_name ?? selectedDept}`,
       });
 

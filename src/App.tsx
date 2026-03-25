@@ -3,13 +3,13 @@ import SignIn from "./pages/AuthPages/SignIn";
 // import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
 import UserProfiles from "./pages/User/UserProfiles";
-import UserManagement from "./pages/Adminitrator/UserManagement";
-import DepartmentManagement from "./pages/Adminitrator/DepartmentManagement";
+import UserManagement from "./pages/Administrator/UserManagement";
+import DepartmentManagement from "./pages/Administrator/DepartmentManagement";
 
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 // import Home from "./pages/Dashboard/Home";
-import LogsList from "./pages/Adminitrator/Logs";
+import LogsList from "./pages/Administrator/Logs";
 import SupportTicketPage from "./pages/Staff/TicketManagement";
 import GroupManagement from "./pages/BI/GroupManagemnt";
 import AppLoading from "./pages/OtherPage/AppLoading";
@@ -24,7 +24,7 @@ import TicketDetailManager from "./pages/Manager/TicketDetailManager";
 import TicketListManager from "./pages/Manager/TicketManagement";
 import OAuth2RedirectHandler from "./components/auth/OAuth2RedirectHandler";
 import TicketListBI from "./pages/BI/TicketManagement";
-import AdminTicketManagement from "./pages/Adminitrator/TicketManagement";
+import AdminTicketManagement from "./pages/Administrator/TicketManagement";
 import TicketListBIStaff from "./pages/BI/TicketListBIStaff";
 
 export default function App() {

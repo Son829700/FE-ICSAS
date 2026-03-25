@@ -13,7 +13,6 @@ export default function AddGroupModal({
   onClose,
 }: AddGroupModalProps) {
   const handleCreate = () => {
-    console.log("Create group...");
     onClose();
   };
 

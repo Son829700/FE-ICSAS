@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useRef, useState } from "react";
 import API from "../../api";
-import { Filter, X, Loader2, CheckCheck, ArrowLeft } from "lucide-react";
+import { Filter, X, Loader2, CheckCheck } from "lucide-react";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 import Badge from "../../components/ui/badge/Badge";
@@ -28,10 +28,10 @@ const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> =
   {
     DONE: "success",
     RESOLVED: "success",
-    VERIFIED: "success", // ← thêm
+    VERIFIED: "success", 
     APPROVED: "info",
     IN_PROGRESS: "warning",
-    WAITING_FOR_VERIFICATION: "warning", // ← thêm
+    WAITING_FOR_VERIFICATION: "warning", 
     REJECTED: "error",
     CANCELLED: "error",
   };

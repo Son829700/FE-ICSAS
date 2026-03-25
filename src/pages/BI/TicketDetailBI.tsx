@@ -28,8 +28,7 @@ export default function TicketDetailBI() {
       role: "MANAGER",
     };
 
-    console.log("Submit payload:", payload);
-    // TODO: call API
+  
   };
 
   return (

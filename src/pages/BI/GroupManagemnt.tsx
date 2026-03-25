@@ -100,7 +100,6 @@ export default function GroupManagement() {
       try {
         const response = await API.get("/groups");
         setGroup(response.data.data);
-        console.log(response);
       } catch (error) {
         console.error("Fetch error in GroupManagement:", error);
       }

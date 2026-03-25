@@ -13,7 +13,6 @@ export default function AddUserCard({
   onClose,
 }: AddUserCardProps) {
   const handleCreate = () => {
-    console.log("Create user...");
     onClose();
   };
 
