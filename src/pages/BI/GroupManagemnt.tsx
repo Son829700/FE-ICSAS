@@ -1,8 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import API from "../../api";
-import { Plus, Eye, Users, ChevronUp, ChevronDown, Pencil } from "lucide-react";
+import {
+  Plus,
+  Eye,
+  Users,
+  ChevronUp,
+  ChevronDown,
+  Pencil,
+  MoreHorizontal,
+  Layers,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
-// UI Components
 import ComponentCard from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
@@ -15,8 +23,8 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table";
+import toast from "react-hot-toast";
 
-// Cập nhật Type Definition thêm field description
 export interface Group {
   group_id: string;
   group_name: string;
@@ -28,31 +36,93 @@ export interface Group {
   department_name?: string;
 }
 
+/* =======================
+   3-DOT DROPDOWN
+======================= */
+function ActionDropdown({
+  group,
+  onEdit,
+  onView,
+}: {
+  group: Group;
+  onEdit: (g: Group) => void;
+  onView: (g: Group) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center justify-center rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition dark:hover:bg-gray-800 dark:hover:text-gray-200"
+      >
+        <MoreHorizontal className="size-4" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 z-30 mt-1 w-44 rounded-xl border border-gray-100 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+          <button
+            onClick={() => {
+              onView(group);
+              setOpen(false);
+            }}
+            className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.04] transition"
+          >
+            <Eye className="size-4 text-gray-400" />
+            View Detail
+          </button>
+          <button
+            onClick={() => {
+              onEdit(group);
+              setOpen(false);
+            }}
+            className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.04] transition"
+          >
+            <Pencil className="size-4 text-gray-400" />
+            Edit Group
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* =======================
+   MAIN PAGE
+======================= */
 export default function GroupManagement() {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
-  const [sortKey, setSortKey] = useState<keyof Group>("group_id");
+  const [sortKey, setSortKey] = useState<keyof Group>("group_name");
   const [sortAsc, setSortAsc] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 5;
-  const [groups, setGroup] = useState<Group[]>([]);
+  const [search, setSearch] = useState("");
+  const pageSize = 8;
+  const [groups, setGroups] = useState<Group[]>([]);
   const [formData, setFormData] = useState({
     group_name: "",
     description: "",
     groupType: "TRADITIONAL",
   });
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >,
   ) => {
     const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   useEffect(() => {
@@ -63,73 +133,45 @@ export default function GroupManagement() {
         groupType: editingGroup.groupType ?? "TRADITIONAL",
       });
     } else {
-      setFormData({
-        group_name: "",
-        description: "",
-        groupType: "TRADITIONAL", // ← default, không để ""
-      });
+      setFormData({ group_name: "", description: "", groupType: "TRADITIONAL" });
     }
   }, [editingGroup]);
+
+  const fetchGroups = async () => {
+    try {
+      const res = await API.get("/groups");
+      setGroups(res.data.data ?? []);
+    } catch (err) {
+      console.error("Fetch error:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchGroups();
+  }, []);
+
   const handleSubmit = async () => {
     try {
       if (editingGroup) {
-        // PUT dùng groupType (camelCase)
         await API.put(`/groups/${editingGroup.group_id}`, {
           group_name: formData.group_name,
           description: formData.description,
           groupType: formData.groupType,
         });
+        toast.success("Group updated!");
       } else {
-        // POST dùng group_type (snake_case)
         await API.post("/groups", {
           group_name: formData.group_name,
           description: formData.description,
           group_type: formData.groupType,
         });
+        toast.success("Group created!");
       }
-
-      const response = await API.get("/groups");
-      setGroup(response.data.data);
+      await fetchGroups();
       handleCloseModal();
     } catch (error) {
       console.error("Submit error:", error);
-    }
-  };
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await API.get("/groups");
-        setGroup(response.data.data);
-      } catch (error) {
-        console.error("Fetch error in GroupManagement:", error);
-      }
-    };
-
-    fetchData();
-  }, []);
-  // Logic: Filter & Sort
-  const filteredData = groups
-    .filter((g) => g.group_name.toLowerCase())
-    .sort((a, b) => {
-      const valA = a[sortKey] ?? "";
-      const valB = b[sortKey] ?? "";
-      if (valA < valB) return sortAsc ? -1 : 1;
-      if (valA > valB) return sortAsc ? 1 : -1;
-      return 0;
-    });
-
-  // Logic: Pagination
-  const totalPages = Math.ceil(filteredData.length / pageSize);
-  const pagedData = filteredData.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
-
-  const toggleSort = (key: keyof Group) => {
-    if (sortKey === key) setSortAsc(!sortAsc);
-    else {
-      setSortKey(key);
-      setSortAsc(true);
+      toast.error("Failed to save group.");
     }
   };
 
@@ -148,74 +190,167 @@ export default function GroupManagement() {
     setEditingGroup(null);
   };
 
+  // Filter + sort
+  const processed = groups
+    .filter(
+      (g) =>
+        g.group_name.toLowerCase().includes(search.toLowerCase()) ||
+        g.description?.toLowerCase().includes(search.toLowerCase()),
+    )
+    .sort((a, b) => {
+      const valA = a[sortKey] ?? "";
+      const valB = b[sortKey] ?? "";
+      if (valA < valB) return sortAsc ? -1 : 1;
+      if (valA > valB) return sortAsc ? 1 : -1;
+      return 0;
+    });
+
+  const totalPages = Math.max(1, Math.ceil(processed.length / pageSize));
+  const pagedData = processed.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
+
+  const toggleSort = (key: keyof Group) => {
+    if (sortKey === key) setSortAsc(!sortAsc);
+    else {
+      setSortKey(key);
+      setSortAsc(true);
+    }
+  };
+
+  // Stats
+  const total = groups.length;
+  const traditional = groups.filter((g) => g.groupType === "TRADITIONAL").length;
+  const adhoc = groups.filter((g) => g.groupType === "ADHOC").length;
+  const totalMembers = groups.reduce((sum, g) => sum + (g.member ?? 0), 0);
+
+  const SortIcon = ({ col }: { col: keyof Group }) => (
+    <div className="flex flex-col ml-1">
+      <ChevronUp
+        size={10}
+        className={sortKey === col && sortAsc ? "text-brand-500" : "text-gray-300"}
+      />
+      <ChevronDown
+        size={10}
+        className={sortKey === col && !sortAsc ? "text-brand-500" : "text-gray-300"}
+      />
+    </div>
+  );
+
   return (
     <div>
-      <PageMeta
-        title="Group Management | Admin"
-        description="Manage user groups"
-      />
+      <PageMeta title="Group Management" description="Manage user groups" />
       <PageBreadcrumb pageTitle="Group Management" />
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-4 mb-6 sm:grid-cols-4">
+        {[
+          { label: "Total Groups", value: total, color: "text-gray-800 dark:text-white" },
+          { label: "Traditional", value: traditional, color: "text-blue-600" },
+          { label: "Adhoc", value: adhoc, color: "text-purple-600" },
+          { label: "Total Members", value: totalMembers, color: "text-emerald-600" },
+        ].map(({ label, value, color }) => (
+          <div
+            key={label}
+            className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]"
+          >
+            <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+            <p className={`mt-1 text-2xl font-bold ${color}`}>{value}</p>
+          </div>
+        ))}
+      </div>
 
       <ComponentCard
         title="All Groups"
         desc="Manage and organize your team groups"
         headerAction={
-          <Button
-            size="md"
-            variant="primary"
-            startIcon={<Plus className="size-5 text-white" />}
-            onClick={handleAddClick}
-          >
-            Create Group
-          </Button>
+          <div className="flex items-center gap-3">
+            {/* Search */}
+            <div className="relative hidden sm:block">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 fill-gray-400"
+                width="16"
+                height="16"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M3.04199 9.37363C3.04199 5.87693 5.87735 3.04199 9.37533 3.04199C12.8733 3.04199 15.7087 5.87693 15.7087 9.37363C15.7087 12.8703 12.8733 15.7053 9.37533 15.7053C5.87735 15.7053 3.04199 12.8703 3.04199 9.37363ZM9.37533 1.54199C5.04926 1.54199 1.54199 5.04817 1.54199 9.37363C1.54199 13.6991 5.04926 17.2053 9.37533 17.2053C11.2676 17.2053 13.0032 16.5344 14.3572 15.4176L17.1773 18.238C17.4702 18.5309 17.945 18.5309 18.2379 18.238C18.5308 17.9451 18.5309 17.4703 18.238 17.1773L15.4182 14.3573C16.5367 13.0033 17.2087 11.2669 17.2087 9.37363C17.2087 5.04817 13.7014 1.54199 9.37533 1.54199Z"
+                />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search groups..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="h-10 w-[200px] rounded-lg border border-gray-300 bg-white pl-9 pr-4 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+              />
+            </div>
+            <Button
+              size="md"
+              variant="primary"
+              startIcon={<Plus className="size-4 text-white" />}
+              onClick={handleAddClick}
+            >
+              Create Group
+            </Button>
+          </div>
         }
       >
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
               <TableRow>
-                {[
-                  { key: "name", label: "Group Name" },
-                  { key: "type", label: "Type" },
-                  { key: "status", label: "Status" },
-                  { key: "members", label: "Members" },
-                ].map((col) => (
-                  <TableCell
-                    key={col.key}
-                    isHeader
-                    className="px-5 py-3 text-start text-theme-xs text-gray-500"
-                  >
-                    <div
-                      className="flex items-center gap-1 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
-                      onClick={() => toggleSort(col.key as keyof Group)}
-                    >
-                      {col.label}
-                      <div className="flex flex-col">
-                        <ChevronUp
-                          size={10}
-                          className={
-                            sortKey === col.key && sortAsc
-                              ? "text-brand-500"
-                              : "text-gray-300"
-                          }
-                        />
-                        <ChevronDown
-                          size={10}
-                          className={
-                            sortKey === col.key && !sortAsc
-                              ? "text-brand-500"
-                              : "text-gray-300"
-                          }
-                        />
-                      </div>
-                    </div>
-                  </TableCell>
-                ))}
                 <TableCell
                   isHeader
-                  className="px-5 py-3 text-left text-theme-xs text-gray-500"
+                  className="px-5 py-3 text-start text-theme-xs text-gray-500"
                 >
-                  Action
+                  <div
+                    className="flex items-center cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
+                    onClick={() => toggleSort("group_name")}
+                  >
+                    Group Name <SortIcon col="group_name" />
+                  </div>
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Type
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Status
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  <div
+                    className="flex items-center cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
+                    onClick={() => toggleSort("member")}
+                  >
+                    Members <SortIcon col="member" />
+                  </div>
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Created
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 text-right text-theme-xs text-gray-500"
+                >
+                  Actions
                 </TableCell>
               </TableRow>
             </TableHeader>
@@ -225,30 +360,34 @@ export default function GroupManagement() {
                 pagedData.map((group) => (
                   <TableRow
                     key={group.group_id}
-                    className="hover:bg-gray-50/50 dark:hover:bg-white/[0.01]"
+                    className="hover:bg-gray-50/50 dark:hover:bg-white/[0.01] transition"
                   >
-                    <TableCell className="px-5 py-4 font-medium text-gray-800 dark:text-white/90">
+                    {/* Name */}
+                    <TableCell className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 dark:bg-gray-800">
-                          <Users size={16} className="text-gray-500" />
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 dark:bg-brand-500/10">
+                          <Layers className="size-4 text-brand-500" />
                         </div>
                         <div>
-                          <p className="font-medium">{group.group_name}</p>
-                          {/* Hiển thị description nhỏ dưới tên group nếu muốn */}
-                          <p className="text-[11px] text-gray-400 font-normal line-clamp-1">
-                            {group.description}
+                          <p className="font-medium text-gray-800 dark:text-white/90">
+                            {group.group_name}
+                          </p>
+                          <p className="text-xs text-gray-400 line-clamp-1 max-w-[220px]">
+                            {group.description || "—"}
                           </p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="px-5 py-4 text-gray-600 dark:text-gray-400">
+
+                    {/* Type */}
+                    <TableCell className="px-5 py-4">
                       <span
-                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                           group.groupType === "TRADITIONAL"
-                            ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-500"
+                            ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
                             : group.groupType === "ADHOC"
-                              ? "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-500"
-                              : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                              ? "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400"
+                              : "bg-gray-100 text-gray-500"
                         }`}
                       >
                         {group.groupType === "TRADITIONAL"
@@ -258,34 +397,53 @@ export default function GroupManagement() {
                             : "—"}
                       </span>
                     </TableCell>
-                    <TableCell className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
-                      {group.status}
-                    </TableCell>
-                    <TableCell className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
-                      {group.member} members
-                    </TableCell>
+
+                    {/* Status */}
                     <TableCell className="px-5 py-4">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEditClick(group)}
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          group.status === "ACTIVE"
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                            : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                        }`}
                       >
-                        <Pencil className="size-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => navigate(`/groups/${group.group_id}`)}
-                      >
-                        <Eye className="size-4" />
-                      </Button>
+                        {group.status}
+                      </span>
+                    </TableCell>
+
+                    {/* Members */}
+                    <TableCell className="px-5 py-4">
+                      <div className="flex items-center gap-1.5">
+                        <Users className="size-3.5 text-gray-400" />
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          {group.member ?? 0}
+                        </span>
+                      </div>
+                    </TableCell>
+
+                    {/* Created */}
+                    <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">
+                      {new Date(group.createdAt).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </TableCell>
+
+                    {/* Actions */}
+                    <TableCell className="px-5 py-4 text-right">
+                      <ActionDropdown
+                        group={group}
+                        onEdit={handleEditClick}
+                        onView={(g) => navigate(`/groups/${g.group_id}`)}
+                      />
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell className="px-5 py-10 text-center text-gray-400">
-                    No groups found.
+                  <TableCell className="px-5 py-12 text-center text-sm text-gray-400">
+                    {search ? `No groups matching "${search}".` : "No groups found."}
                   </TableCell>
                 </TableRow>
               )}
@@ -294,54 +452,78 @@ export default function GroupManagement() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between border-t border-gray-100 pt-5 dark:border-gray-800">
-          <p className="text-sm text-gray-500">
-            Page {currentPage} of {totalPages || 1}
+        <div className="flex items-center justify-between border-t border-gray-100 pt-4 dark:border-gray-800">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Showing{" "}
+            <span className="font-medium text-gray-700 dark:text-gray-300">
+              {processed.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}
+            </span>{" "}
+            –{" "}
+            <span className="font-medium text-gray-700 dark:text-gray-300">
+              {Math.min(currentPage * pageSize, processed.length)}
+            </span>{" "}
+            of{" "}
+            <span className="font-medium text-gray-700 dark:text-gray-300">
+              {processed.length}
+            </span>
           </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
+          <div className="flex items-center gap-1">
+            <button
               disabled={currentPage === 1}
               onClick={() => setCurrentPage((p) => p - 1)}
+              className="h-9 rounded-lg border border-gray-200 bg-white px-3.5 text-sm font-medium text-gray-600 disabled:opacity-40 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 transition"
             >
               Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={currentPage === totalPages || totalPages === 0}
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                onClick={() => setCurrentPage(p)}
+                className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition ${
+                  currentPage === p
+                    ? "bg-brand-500 text-white"
+                    : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+            <button
+              disabled={currentPage === totalPages}
               onClick={() => setCurrentPage((p) => p + 1)}
+              className="h-9 rounded-lg border border-gray-200 bg-white px-3.5 text-sm font-medium text-gray-600 disabled:opacity-40 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 transition"
             >
               Next
-            </Button>
+            </button>
           </div>
         </div>
       </ComponentCard>
 
-      {/* --- MODAL --- */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        className="max-w-lg p-6"
-      >
+      {/* Modal */}
+      <Modal isOpen={isModalOpen} onClose={handleCloseModal} className="max-w-lg p-6">
         <div className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-800">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-            {editingGroup ? "Edit Group" : "Create New Group"}
-          </h3>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+              {editingGroup ? "Edit Group" : "Create New Group"}
+            </h3>
+            <p className="mt-0.5 text-sm text-gray-500">
+              {editingGroup
+                ? "Update group information below."
+                : "Fill in the details to create a new group."}
+            </p>
+          </div>
         </div>
 
         <form
-          className="mt-6 space-y-4"
+          className="mt-5 space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
             handleSubmit();
           }}
         >
-          {/* Group Name */}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Group Name
+              Group Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -349,49 +531,59 @@ export default function GroupManagement() {
               value={formData.group_name}
               onChange={handleChange}
               placeholder="e.g. Marketing Team"
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              required
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
 
           <div>
-            {/* Type Selection */}
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Type
-              </label>
-              <select
-                name="groupType"
-                value={formData.groupType}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              >
-                <option value="TRADITIONAL">Traditional</option>
-                <option value="ADHOC">Adhoc</option>
-              </select>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Type
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              {(["TRADITIONAL", "ADHOC"] as const).map((type) => (
+                <label
+                  key={type}
+                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${
+                    formData.groupType === type
+                      ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10"
+                      : "border-gray-200 hover:border-gray-300 dark:border-gray-700"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="groupType"
+                    value={type}
+                    checked={formData.groupType === type}
+                    onChange={handleChange}
+                    className="hidden"
+                  />
+                  <div
+                    className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${
+                      formData.groupType === type
+                        ? "border-brand-500"
+                        : "border-gray-300"
+                    }`}
+                  >
+                    {formData.groupType === type && (
+                      <div className="h-2 w-2 rounded-full bg-brand-500" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {type === "TRADITIONAL" ? "Traditional" : "Adhoc"}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {type === "TRADITIONAL"
+                        ? "Permanent team group"
+                        : "Temporary project group"}
+                    </p>
+                  </div>
+                </label>
+              ))}
             </div>
-
-            {/* Department Selection - Thay đổi từ input sang select */}
-            {/* <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Department
-              </label>
-              <select
-                defaultValue={editingGroup?.status || ""}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              >
-                <option value="" disabled>
-                  Select Department
-                </option>
-                {DEPARTMENTS.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-              </select>
-            </div> */}
           </div>
 
-          {/* Description - Field mới thêm vào */}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Description
@@ -401,17 +593,17 @@ export default function GroupManagement() {
               value={formData.description}
               onChange={handleChange}
               rows={3}
-              placeholder="Enter group description..."
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white resize-none"
+              placeholder="Describe the purpose of this group..."
+              className="w-full resize-none rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
 
-          <div className="mt-8 flex justify-end gap-3">
+          <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={handleCloseModal}>
               Cancel
             </Button>
-            <Button variant="primary">
-              {editingGroup ? "Update Group" : "Save Group"}
+            <Button variant="primary" >
+              {editingGroup ? "Save Changes" : "Create Group"}
             </Button>
           </div>
         </form>
