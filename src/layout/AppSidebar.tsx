@@ -112,6 +112,12 @@ const navItems: NavItem[] = [
     path: "/BI/my-ticket",
     roles: ["BI"],
   }, // chỉ hiện nếu !isManager
+  {
+    name: "Logs",
+    icon: <FileText />,
+    path: "/dashboard-usage-log",
+    roles: ["BI"],
+  }, 
 ];
 
 const AppSidebar: React.FC = () => {

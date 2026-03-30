@@ -1,5 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { useAuthContext } from "../context/AuthContext";
+import AppLoading from "../pages/OtherPage/AppLoading";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,7 +15,7 @@ export default function ProtectedRoute({
 
   // Đợi auth load xong trước khi redirect
   if (authLoading) {
-    return <div>Loading...</div>;
+    return <AppLoading />;
   }
 
   if (!user) {

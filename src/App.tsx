@@ -26,6 +26,7 @@ import OAuth2RedirectHandler from "./components/auth/OAuth2RedirectHandler";
 import TicketListBI from "./pages/BI/TicketManagement";
 import AdminTicketManagement from "./pages/Administrator/TicketManagement";
 import TicketListBIStaff from "./pages/BI/TicketListBIStaff";
+import DashboardUsageLogs from "./pages/BI/Dashboardusagelogs ";
 
 export default function App() {
   return (
@@ -151,6 +152,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={["BI"]}>
                 <GroupManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard-usage-log"
+            element={
+              <ProtectedRoute allowedRoles={["BI"]}>
+                <DashboardUsageLogs />
               </ProtectedRoute>
             }
           />

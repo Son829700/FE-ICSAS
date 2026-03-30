@@ -888,6 +888,7 @@ export default function AdminTicketManagement() {
   const [page, setPage] = useState(1);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -955,7 +956,12 @@ export default function AdminTicketManagement() {
   const filteredTickets = tickets.filter((t) => {
     const typeMatch = !filter.type || t.type === filter.type;
     const statusMatch = !filter.status || t.status === filter.status;
-    return typeMatch && statusMatch;
+    const q = search.toLowerCase();
+    const searchMatch =
+      !q ||
+      t.requester?.username?.toLowerCase().includes(q) ||
+      t.requester?.email?.toLowerCase().includes(q);
+    return typeMatch && statusMatch && searchMatch;
   });
 
   const totalPages = Math.max(1, Math.ceil(filteredTickets.length / PAGE_SIZE));
@@ -1042,6 +1048,30 @@ export default function AdminTicketManagement() {
               Process account requests (TYPE2) and review dashboard drafts
               (TYPE3)
             </p>
+          </div>
+          <div className="relative">
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 fill-gray-400"
+              width="16"
+              height="16"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                clipRule="evenodd"
+                d="M3.04199 9.37363C3.04199 5.87693 5.87735 3.04199 9.37533 3.04199C12.8733 3.04199 15.7087 5.87693 15.7087 9.37363C15.7087 12.8703 12.8733 15.7053 9.37533 15.7053C5.87735 15.7053 3.04199 12.8703 3.04199 9.37363ZM9.37533 1.54199C5.04926 1.54199 1.54199 5.04817 1.54199 9.37363C1.54199 13.6991 5.04926 17.2053 9.37533 17.2053C11.2676 17.2053 13.0032 16.5344 14.3572 15.4176L17.1773 18.238C17.4702 18.5309 17.945 18.5309 18.2379 18.238C18.5308 17.9451 18.5309 17.4703 18.238 17.1773L15.4182 14.3573C16.5367 13.0033 17.2087 11.2669 17.2087 9.37363C17.2087 5.04817 13.7014 1.54199 9.37533 1.54199Z"
+              />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search requester,email..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="h-11 w-[220px] rounded-lg border border-gray-300 bg-white pl-9 pr-4 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+            />
           </div>
 
           <div className="relative" ref={dropdownRef}>

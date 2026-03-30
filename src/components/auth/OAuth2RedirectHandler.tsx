@@ -54,24 +54,41 @@ export default function OAuth2RedirectHandler() {
         setUserName(user.username);
 
         if (!user.department) {
-          // Chưa có department → fetch departments và hiện modal
           try {
             setLoadingDepts(true);
-            const res = await API.get("/departments");
-            const activeDepts: Department[] = (res.data.data ?? []).filter(
+
+            // Check xem đã có ticket chưa
+            const ticketRes = await API.get(
+              `/tickets/requester/${user.user_id}`,
+            );
+            const tickets = ticketRes.data.data ?? [];
+
+            if (tickets.length > 0) {
+              // Đã submit ticket rồi → vào /ticket chờ admin duyệt
+              toast("Your request is pending Admin approval.", {
+                icon: "⏳",
+                duration: 5000,
+              });
+              navigate("/ticket");
+              return;
+            }
+
+            // Chưa có ticket → fetch departments và hiện modal
+            const deptRes = await API.get("/departments");
+            const activeDepts: Department[] = (deptRes.data.data ?? []).filter(
               (d: Department) => d.status === "ACTIVE",
             );
             setDepartments(activeDepts);
-            // Auto-fill description
             setDescription(
-              `Hi, I am ${user.username} (${user.email}). I would like to request access to the system. Please assign me the appropriate role and department.`,
+              `Hi, I am ${user.username}. I would like to request access to the system. Please assign me the appropriate role and department.`,
             );
+            setShowModal(true);
           } catch (err) {
-            console.error("Fetch departments failed:", err);
+            console.error("Onboarding check failed:", err);
+            setShowModal(true); // fallback: vẫn cho tạo ticket nếu lỗi
           } finally {
             setLoadingDepts(false);
           }
-          setShowModal(true);
         } else {
           toast.success("Login successfully!");
           navigate("/");
@@ -92,7 +109,7 @@ export default function OAuth2RedirectHandler() {
       setSubmitting(true);
 
       await API.post("/tickets/ticket_type2", {
-        type : "TYPE2",
+        type: "TYPE2",
         description: `${description.trim()}\n\nRequested Department: ${dept?.department_name ?? selectedDept}`,
       });
 
@@ -207,8 +224,8 @@ export default function OAuth2RedirectHandler() {
           {/* Info */}
           <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 dark:border-blue-900/40 dark:bg-blue-900/10">
             <p className="text-xs text-blue-600 dark:text-blue-400">
-              Admin will review your request and assign the appropriate role
-              and department. You will be notified via the ticket system.
+              Admin will review your request and assign the appropriate role and
+              department. You will be notified via the ticket system.
             </p>
           </div>
 
