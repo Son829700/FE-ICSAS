@@ -98,7 +98,6 @@ export default function SupportTicketPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<"all" | "mine" | "others">("all");
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
 

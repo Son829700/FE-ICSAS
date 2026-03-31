@@ -26,7 +26,8 @@ import OAuth2RedirectHandler from "./components/auth/OAuth2RedirectHandler";
 import TicketListBI from "./pages/BI/TicketManagement";
 import AdminTicketManagement from "./pages/Administrator/TicketManagement";
 import TicketListBIStaff from "./pages/BI/TicketListBIStaff";
-import DashboardUsageLogs from "./pages/BI/Dashboardusagelogs ";
+import DashboardUsageLogs from "./pages/BI/Dashboardusagelogs";
+
 
 export default function App() {
   return (
