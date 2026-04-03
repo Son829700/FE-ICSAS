@@ -1049,104 +1049,110 @@ export default function AdminTicketManagement() {
               (TYPE3)
             </p>
           </div>
-          <div className="relative">
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 fill-gray-400"
-              width="16"
-              height="16"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M3.04199 9.37363C3.04199 5.87693 5.87735 3.04199 9.37533 3.04199C12.8733 3.04199 15.7087 5.87693 15.7087 9.37363C15.7087 12.8703 12.8733 15.7053 9.37533 15.7053C5.87735 15.7053 3.04199 12.8703 3.04199 9.37363ZM9.37533 1.54199C5.04926 1.54199 1.54199 5.04817 1.54199 9.37363C1.54199 13.6991 5.04926 17.2053 9.37533 17.2053C11.2676 17.2053 13.0032 16.5344 14.3572 15.4176L17.1773 18.238C17.4702 18.5309 17.945 18.5309 18.2379 18.238C18.5308 17.9451 18.5309 17.4703 18.238 17.1773L15.4182 14.3573C16.5367 13.0033 17.2087 11.2669 17.2087 9.37363C17.2087 5.04817 13.7014 1.54199 9.37533 1.54199Z"
+
+          {/* Search + Filter gộp vào 1 group */}
+          <div className="flex items-center gap-2">
+            {/* Search */}
+            <div className="relative">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 fill-gray-400"
+                width="16"
+                height="16"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M3.04199 9.37363C3.04199 5.87693 5.87735 3.04199 9.37533 3.04199C12.8733 3.04199 15.7087 5.87693 15.7087 9.37363C15.7087 12.8703 12.8733 15.7053 9.37533 15.7053C5.87735 15.7053 3.04199 12.8703 3.04199 9.37363ZM9.37533 1.54199C5.04926 1.54199 1.54199 5.04817 1.54199 9.37363C1.54199 13.6991 5.04926 17.2053 9.37533 17.2053C11.2676 17.2053 13.0032 16.5344 14.3572 15.4176L17.1773 18.238C17.4702 18.5309 17.945 18.5309 18.2379 18.238C18.5308 17.9451 18.5309 17.4703 18.238 17.1773L15.4182 14.3573C16.5367 13.0033 17.2087 11.2669 17.2087 9.37363C17.2087 5.04817 13.7014 1.54199 9.37533 1.54199Z"
+                />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search requester, email..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                className="h-11 w-[220px] rounded-lg border border-gray-300 bg-white pl-9 pr-4 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
               />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search requester,email..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              className="h-11 w-[220px] rounded-lg border border-gray-300 bg-white pl-9 pr-4 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-            />
-          </div>
+            </div>
 
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setFilterOpen(!filterOpen)}
-              className="flex h-11 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-            >
-              <Filter size={18} />
-              Filter
-              {(filter.type || filter.status) && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-xs text-white">
-                  {[filter.type, filter.status].filter(Boolean).length}
-                </span>
+            {/* Filter */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setFilterOpen(!filterOpen)}
+                className="flex h-11 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+              >
+                <Filter size={18} />
+                Filter
+                {(filter.type || filter.status) && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-xs text-white">
+                    {[filter.type, filter.status].filter(Boolean).length}
+                  </span>
+                )}
+              </button>
+
+              {filterOpen && (
+                <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                  <div className="mb-4">
+                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Ticket Type
+                    </label>
+                    <select
+                      value={filter.type}
+                      onChange={(e) => {
+                        setFilter((p) => ({ ...p, type: e.target.value }));
+                        setPage(1);
+                      }}
+                      className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    >
+                      <option value="">All</option>
+                      <option value="TYPE2">User Account Management</option>
+                      <option value="TYPE3">Dashboard Development</option>
+                    </select>
+                  </div>
+                  <div className="mb-4">
+                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Status
+                    </label>
+                    <select
+                      value={filter.status}
+                      onChange={(e) => {
+                        setFilter((p) => ({ ...p, status: e.target.value }));
+                        setPage(1);
+                      }}
+                      className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    >
+                      <option value="">All</option>
+                      <option value="CREATED">Created</option>
+                      <option value="APPROVED">Approved</option>
+                      <option value="RESOLVED">Resolved</option>
+                      <option value="DONE">Done</option>
+                      <option value="REJECTED">Rejected</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setFilter({ type: "", status: "" });
+                        setPage(1);
+                        setFilterOpen(false);
+                      }}
+                      className="h-9 flex-1 rounded-lg border border-gray-300 text-xs font-medium text-gray-600 hover:bg-gray-50 transition"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      onClick={() => setFilterOpen(false)}
+                      className="h-9 flex-1 rounded-lg bg-brand-500 text-xs font-medium text-white hover:bg-brand-600 transition"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
               )}
-            </button>
-
-            {filterOpen && (
-              <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-                <div className="mb-4">
-                  <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                    Ticket Type
-                  </label>
-                  <select
-                    value={filter.type}
-                    onChange={(e) => {
-                      setFilter((p) => ({ ...p, type: e.target.value }));
-                      setPage(1);
-                    }}
-                    className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                  >
-                    <option value="">All</option>
-                    <option value="TYPE2">User Account Management</option>
-                    <option value="TYPE3">Dashboard Development</option>
-                  </select>
-                </div>
-                <div className="mb-4">
-                  <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                    Status
-                  </label>
-                  <select
-                    value={filter.status}
-                    onChange={(e) => {
-                      setFilter((p) => ({ ...p, status: e.target.value }));
-                      setPage(1);
-                    }}
-                    className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                  >
-                    <option value="">All</option>
-                    <option value="CREATED">Created</option>
-                    <option value="APPROVED">Approved</option>
-                    <option value="RESOLVED">Resolved</option>
-                    <option value="DONE">Done</option>
-                    <option value="REJECTED">Rejected</option>
-                  </select>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setFilter({ type: "", status: "" });
-                      setPage(1);
-                      setFilterOpen(false);
-                    }}
-                    className="h-9 flex-1 rounded-lg border border-gray-300 text-xs font-medium text-gray-600 hover:bg-gray-50 transition"
-                  >
-                    Reset
-                  </button>
-                  <button
-                    onClick={() => setFilterOpen(false)}
-                    className="h-9 flex-1 rounded-lg bg-brand-500 text-xs font-medium text-white hover:bg-brand-600 transition"
-                  >
-                    Apply
-                  </button>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         </div>
 

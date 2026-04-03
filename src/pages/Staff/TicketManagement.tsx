@@ -197,7 +197,7 @@ export default function SupportTicketPage() {
       />
 
       <PageMeta
-        title="Support Ticket | Admin Dashboard"
+        title="Support Ticket"
         description="Manage and track customer support tickets"
       />
       {/* STATS */}
