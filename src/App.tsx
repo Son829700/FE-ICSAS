@@ -1,6 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import SignIn from "./pages/AuthPages/SignIn";
-// import SignUp from "./pages/AuthPages/SignUp";
+import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
 import UserProfiles from "./pages/User/UserProfiles";
 import UserManagement from "./pages/Administrator/UserManagement";
@@ -27,7 +27,8 @@ import TicketListBI from "./pages/BI/TicketManagement";
 import AdminTicketManagement from "./pages/Administrator/TicketManagement";
 import TicketListBIStaff from "./pages/BI/TicketListBIStaff";
 import DashboardUsageLogs from "./pages/BI/Dashboardusagelogs";
-
+import ForgotPassword from "./pages/AuthPages/ForgotPassword";
+import TwoStepVerification from "./pages/AuthPages/TwoStepVerification";
 
 export default function App() {
   return (
@@ -207,6 +208,12 @@ export default function App() {
         </Route>
         {/* Auth Layout */}
         <Route path="/signin" element={<SignIn />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/reset-password" element={<ForgotPassword />} />
+        <Route
+          path="/two-step-verification"
+          element={<TwoStepVerification />}
+        />
         <Route path="/oauth2-redirect" element={<OAuth2RedirectHandler />} />
         <Route path="/loading" element={<AppLoading />} />
 

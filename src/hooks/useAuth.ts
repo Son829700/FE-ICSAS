@@ -53,14 +53,14 @@ export const useAuth = () => {
   }, []);
 
   const login = async (
-    username: string,
+    email: string,
     password: string,
   ): Promise<User | null> => {
     setAuthLoading(true);
     setError(null);
 
     try {
-      const response = await API.post("/auth/token", { username, password });
+      const response = await API.post("/auth/token", { email, password });
       const token: string = response.data.data.token;
       localStorage.setItem("token", token);
 

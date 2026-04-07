@@ -6,7 +6,7 @@ export default function SignIn() {
   return (
     <>
       <PageMeta
-        title=" SignIn ICSAS |"
+        title=" SignIn ICSAS "
         description="Internal Web Portal for Customer Analytics and Business Intelligence Dashboards"
       />
       <AuthLayout>

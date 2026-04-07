@@ -34,7 +34,7 @@ const API_GOOGLE_LOGIN_URL = "/oauth2/authorization/google";
   const [isChecked, setIsChecked] = useState(false);
   const { login, authLoading } = useAuthContext();
 
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -51,7 +51,7 @@ const API_GOOGLE_LOGIN_URL = "/oauth2/authorization/google";
     e.preventDefault();
 
     try {
-      const user = await login(username, password);
+      const user = await login(email, password);
 
       if (!user) return;
       setCurrentUserId(user.user_id);
@@ -181,9 +181,9 @@ const API_GOOGLE_LOGIN_URL = "/oauth2/authorization/google";
                     Email <span className="text-error-500">*</span>{" "}
                   </Label>
                   <Input
-                    placeholder="username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
                 <div>
@@ -231,7 +231,7 @@ const API_GOOGLE_LOGIN_URL = "/oauth2/authorization/google";
               </div>
             </form>
 
-            {/* <div className="mt-5">
+            <div className="mt-5">
               <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
                 Don&apos;t have an account? {""}
                 <Link
@@ -241,7 +241,7 @@ const API_GOOGLE_LOGIN_URL = "/oauth2/authorization/google";
                   Sign Up
                 </Link>
               </p>
-            </div> */}
+            </div>
           </div>
         </div>
       </div>
