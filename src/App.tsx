@@ -55,7 +55,7 @@ export default function App() {
             path="/"
             element={
               <ProtectedRoute
-                allowedRoles={["STAFF", "MANAGER", "BI", "ADMINISTRATOR"]}
+                allowedRoles={["STAFF", "CUSTOMER", "BI", "ADMINISTRATOR"]}
               >
                 <StaffHome />
               </ProtectedRoute>
@@ -65,7 +65,7 @@ export default function App() {
             path="/profile"
             element={
               <ProtectedRoute
-                allowedRoles={["STAFF", "MANAGER", "BI", "ADMINISTRATOR"]}
+                allowedRoles={["STAFF", "CUSTOMER", "BI", "ADMINISTRATOR"]}
               >
                 <UserProfiles />
               </ProtectedRoute>
@@ -75,7 +75,7 @@ export default function App() {
             path="/dashboard/:id"
             element={
               <ProtectedRoute
-                allowedRoles={["STAFF", "MANAGER", "BI", "ADMINISTRATOR"]}
+                allowedRoles={["STAFF", "CUSTOMER", "BI", "ADMINISTRATOR"]}
               >
                 <StaffHome />
               </ProtectedRoute>
@@ -118,7 +118,7 @@ export default function App() {
           <Route
             path="/manager/ticket"
             element={
-              <ProtectedRoute allowedRoles={["STAFF"]}>
+              <ProtectedRoute allowedRoles={["STAFF", "CUSTOMER"]}>
                 <TicketListManager />
               </ProtectedRoute>
             }
@@ -126,7 +126,7 @@ export default function App() {
           <Route
             path="/manager/ticket/:id"
             element={
-              <ProtectedRoute allowedRoles={["STAFF"]}>
+              <ProtectedRoute allowedRoles={["STAFF", "CUSTOMER"]}>
                 <TicketDetailManager />
               </ProtectedRoute>
             }
@@ -135,7 +135,7 @@ export default function App() {
           <Route
             path="/ticket"
             element={
-              <ProtectedRoute allowedRoles={["STAFF"]}>
+              <ProtectedRoute allowedRoles={["STAFF", "CUSTOMER"]}>
                 <SupportTicketPage />
               </ProtectedRoute>
             }
@@ -143,7 +143,7 @@ export default function App() {
           <Route
             path="/ticket/:id"
             element={
-              <ProtectedRoute allowedRoles={["STAFF", "MANAGER"]}>
+              <ProtectedRoute allowedRoles={["STAFF", "CUSTOMER"]}>
                 <TicketDetail />
               </ProtectedRoute>
             }

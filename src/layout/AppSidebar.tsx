@@ -50,7 +50,7 @@ const navItems: NavItem[] = [
     name: "Dashboard",
     icon: <GridIcon />,
     path: "/",
-    roles: ["ADMINISTRATOR", "STAFF", "BI"],
+    roles: ["ADMINISTRATOR", "STAFF", "BI", "CUSTOMER"],
   },
 
   // ADMINISTRATOR
@@ -84,7 +84,7 @@ const navItems: NavItem[] = [
     name: "Ticket Management",
     icon: <Ticket />,
     path: "/ticket",
-    roles: ["STAFF"],
+    roles: ["STAFF", "CUSTOMER"],
   },
 
   // BI

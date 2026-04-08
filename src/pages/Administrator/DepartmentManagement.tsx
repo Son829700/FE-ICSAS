@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import API from "../../api";
-import { Plus, Pencil, MoreHorizontal, Building2, Users, CheckCircle } from "lucide-react";
+import { Plus, Pencil, MoreHorizontal, Building2, Users, CheckCircle, Globe, Lock } from "lucide-react";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
@@ -33,6 +33,7 @@ export interface Department {
   department_name: string;
   manager: User;
   status: string;
+  department_type: "INTERNAL" | "EXTERNAL";
 }
 
 const PAGE_SIZE = 8;
@@ -83,6 +84,26 @@ function ActionDropdown({
 }
 
 /* =======================
+   DEPARTMENT TYPE BADGE
+======================= */
+function DepartmentTypeBadge({ type }: { type: "INTERNAL" | "EXTERNAL" }) {
+  if (type === "INTERNAL") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+        <Lock className="size-3" />
+        Internal
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+      <Globe className="size-3" />
+      External
+    </span>
+  );
+}
+
+/* =======================
    MAIN PAGE
 ======================= */
 export default function DepartmentManagement() {
@@ -94,11 +115,13 @@ export default function DepartmentManagement() {
     department_name: "",
     managerId: "",
     status: "ACTIVE",
+    department_type: "INTERNAL" as "INTERNAL" | "EXTERNAL",
   });
 
   // Filter / search / pagination
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL");
+  const [typeFilter, setTypeFilter] = useState<"ALL" | "INTERNAL" | "EXTERNAL">("ALL");
   const [page, setPage] = useState(1);
 
   /* =====================
@@ -131,7 +154,7 @@ export default function DepartmentManagement() {
   ===================== */
   const handleAddClick = () => {
     setEditingDepartment(null);
-    setFormData({ department_name: "", managerId: "", status: "ACTIVE" });
+    setFormData({ department_name: "", managerId: "", status: "ACTIVE", department_type: "INTERNAL" });
     setIsModalOpen(true);
   };
 
@@ -141,6 +164,7 @@ export default function DepartmentManagement() {
       department_name: department.department_name,
       managerId: department.manager?.user_id ?? "",
       status: department.status,
+      department_type: department.department_type ?? "INTERNAL",
     });
     setIsModalOpen(true);
   };
@@ -164,6 +188,7 @@ export default function DepartmentManagement() {
         await API.put(`/departments/${editingDepartment.department_id}`, {
           department_name: formData.department_name,
           managerId: formData.managerId,
+          department_type: formData.department_type,
         });
 
         if (editingDepartment.status !== formData.status) {
@@ -178,6 +203,7 @@ export default function DepartmentManagement() {
         await API.post("/departments", {
           department_name: formData.department_name,
           managerId: formData.managerId,
+          department_type: formData.department_type,
         });
         toast.success("Department created successfully!");
       }
@@ -201,7 +227,8 @@ export default function DepartmentManagement() {
       d.manager?.username?.toLowerCase().includes(q) ||
       d.manager?.email?.toLowerCase().includes(q);
     const matchStatus = statusFilter === "ALL" || d.status === statusFilter;
-    return matchSearch && matchStatus;
+    const matchType = typeFilter === "ALL" || d.department_type === typeFilter;
+    return matchSearch && matchStatus && matchType;
   });
 
   const totalPages = Math.max(1, Math.ceil(processed.length / PAGE_SIZE));
@@ -210,8 +237,8 @@ export default function DepartmentManagement() {
   // Stats
   const total = departments.length;
   const active = departments.filter((d) => d.status === "ACTIVE").length;
-  const inactive = departments.filter((d) => d.status === "INACTIVE").length;
-  const withManager = departments.filter((d) => !!d.manager).length;
+  const internal = departments.filter((d) => d.department_type === "INTERNAL").length;
+  const external = departments.filter((d) => d.department_type === "EXTERNAL").length;
 
   /* =====================
      RENDER
@@ -226,8 +253,8 @@ export default function DepartmentManagement() {
         {[
           { label: "Total", value: total, color: "text-gray-800 dark:text-white", icon: <Building2 className="size-4" /> },
           { label: "Active", value: active, color: "text-emerald-600", icon: <CheckCircle className="size-4" /> },
-          { label: "Inactive", value: inactive, color: "text-red-500", icon: <Building2 className="size-4" /> },
-          { label: "Has Manager", value: withManager, color: "text-brand-600", icon: <Users className="size-4" /> },
+          { label: "Internal", value: internal, color: "text-blue-600", icon: <Lock className="size-4" /> },
+          { label: "External", value: external, color: "text-purple-600", icon: <Globe className="size-4" /> },
         ].map(({ label, value, color, icon }) => (
           <div key={label} className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
             <div className="flex items-center justify-between mb-1">
@@ -278,21 +305,41 @@ export default function DepartmentManagement() {
             />
           </div>
 
-          {/* Status tabs */}
-          <div className="flex h-10 items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 dark:bg-gray-900">
-            {(["ALL", "ACTIVE", "INACTIVE"] as const).map((s) => (
-              <button
-                key={s}
-                onClick={() => { setStatusFilter(s); setPage(1); }}
-                className={`h-9 rounded-md px-3 text-xs font-medium transition ${
-                  statusFilter === s
-                    ? "bg-white shadow-sm text-gray-900 dark:bg-gray-800 dark:text-white"
-                    : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
-                }`}
-              >
-                {s === "ALL" ? "All" : s.charAt(0) + s.slice(1).toLowerCase()}
-              </button>
-            ))}
+          {/* Filters row */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Type filter */}
+            <div className="flex h-10 items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 dark:bg-gray-900">
+              {(["ALL", "INTERNAL", "EXTERNAL"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => { setTypeFilter(t); setPage(1); }}
+                  className={`h-9 rounded-md px-3 text-xs font-medium transition ${
+                    typeFilter === t
+                      ? "bg-white shadow-sm text-gray-900 dark:bg-gray-800 dark:text-white"
+                      : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                  }`}
+                >
+                  {t === "ALL" ? "All Types" : t.charAt(0) + t.slice(1).toLowerCase()}
+                </button>
+              ))}
+            </div>
+
+            {/* Status tabs */}
+            <div className="flex h-10 items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 dark:bg-gray-900">
+              {(["ALL", "ACTIVE", "INACTIVE"] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => { setStatusFilter(s); setPage(1); }}
+                  className={`h-9 rounded-md px-3 text-xs font-medium transition ${
+                    statusFilter === s
+                      ? "bg-white shadow-sm text-gray-900 dark:bg-gray-800 dark:text-white"
+                      : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                  }`}
+                >
+                  {s === "ALL" ? "All Status" : s.charAt(0) + s.slice(1).toLowerCase()}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -303,6 +350,9 @@ export default function DepartmentManagement() {
               <TableRow>
                 <TableCell isHeader className="px-5 py-3 text-start text-theme-xs text-gray-500">
                   Department Name
+                </TableCell>
+                <TableCell isHeader className="px-5 py-3 text-start text-theme-xs text-gray-500">
+                  Type
                 </TableCell>
                 <TableCell isHeader className="px-5 py-3 text-start text-theme-xs text-gray-500">
                   Manager
@@ -323,7 +373,7 @@ export default function DepartmentManagement() {
               {paginated.length === 0 ? (
                 <TableRow>
                   <TableCell className="px-5 py-12 text-center text-sm text-gray-400">
-                    {search || statusFilter !== "ALL"
+                    {search || statusFilter !== "ALL" || typeFilter !== "ALL"
                       ? "No departments match your filters."
                       : "No departments found."}
                   </TableCell>
@@ -339,13 +389,26 @@ export default function DepartmentManagement() {
                     {/* Name */}
                     <TableCell className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 dark:bg-brand-500/10">
-                          <Building2 className="size-4 text-brand-500" />
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                          department.department_type === "EXTERNAL"
+                            ? "bg-purple-50 dark:bg-purple-500/10"
+                            : "bg-brand-50 dark:bg-brand-500/10"
+                        }`}>
+                          <Building2 className={`size-4 ${
+                            department.department_type === "EXTERNAL"
+                              ? "text-purple-500"
+                              : "text-brand-500"
+                          }`} />
                         </div>
                         <span className="font-medium text-gray-800 dark:text-white/90">
                           {department.department_name}
                         </span>
                       </div>
+                    </TableCell>
+
+                    {/* Type */}
+                    <TableCell className="px-5 py-4">
+                      <DepartmentTypeBadge type={department.department_type ?? "INTERNAL"} />
                     </TableCell>
 
                     {/* Manager */}
@@ -486,6 +549,73 @@ export default function DepartmentManagement() {
               required
               className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
+          </div>
+
+          {/* Department Type */}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Department Type <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              {(["INTERNAL", "EXTERNAL"] as const).map((t) => {
+                const isSelected = formData.department_type === t;
+                const Icon = t === "INTERNAL" ? Lock : Globe;
+                const selectedStyle =
+                  t === "INTERNAL"
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/10"
+                    : "border-purple-500 bg-purple-50 dark:bg-purple-900/10";
+                const iconStyle = t === "INTERNAL" ? "text-blue-500" : "text-purple-500";
+                const textStyle =
+                  t === "INTERNAL"
+                    ? "text-blue-700 dark:text-blue-400"
+                    : "text-purple-700 dark:text-purple-400";
+                const radioStyle =
+                  t === "INTERNAL" ? "border-blue-500" : "border-purple-500";
+                const dotStyle = t === "INTERNAL" ? "bg-blue-500" : "bg-purple-500";
+
+                return (
+                  <label
+                    key={t}
+                    className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition ${
+                      isSelected ? selectedStyle : "border-gray-200 hover:border-gray-300 dark:border-gray-700"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="department_type"
+                      value={t}
+                      checked={isSelected}
+                      onChange={handleChange}
+                      className="hidden"
+                    />
+                    <div className="mt-0.5 flex shrink-0 items-center justify-center">
+                      <div
+                        className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${
+                          isSelected ? radioStyle : "border-gray-300"
+                        }`}
+                      >
+                        {isSelected && <div className={`h-2 w-2 rounded-full ${dotStyle}`} />}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <Icon className={`size-3.5 ${isSelected ? iconStyle : "text-gray-400"}`} />
+                        <span
+                          className={`text-sm font-medium ${
+                            isSelected ? textStyle : "text-gray-600 dark:text-gray-400"
+                          }`}
+                        >
+                          {t.charAt(0) + t.slice(1).toLowerCase()}
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
+                        {t === "INTERNAL" ? "FPT internal department" : "External seller / partner"}
+                      </span>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
           </div>
 
           {/* Manager */}

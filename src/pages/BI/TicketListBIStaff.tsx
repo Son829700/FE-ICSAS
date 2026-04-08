@@ -28,10 +28,10 @@ const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> =
   {
     DONE: "success",
     RESOLVED: "success",
-    VERIFIED: "success", 
+    VERIFIED: "success",
     APPROVED: "info",
     IN_PROGRESS: "warning",
-    WAITING_FOR_VERIFICATION: "warning", 
+    WAITING_FOR_VERIFICATION: "warning",
     REJECTED: "error",
     CANCELLED: "error",
   };
@@ -258,7 +258,6 @@ function TicketDetailModal({
         <div className="p-6 space-y-6">
           {/* Ticket Info */}
           <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-          
             <DetailRow
               label="Requester"
               value={
@@ -515,7 +514,6 @@ function TicketDetailModal({
           {currentTicket.status === "RESOLVED" && (
             <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 dark:border-blue-800 dark:bg-blue-900/10">
               <p className="text-sm font-medium text-blue-700 dark:text-blue-400">
-              
                 {isType3
                   ? "Waiting for Admin to review the dashboard draft"
                   : "Waiting for requester confirmation"}
@@ -591,17 +589,25 @@ export default function TicketListBIStaff() {
   const fetchTickets = async () => {
     if (!user?.user_id) return;
     try {
-      const res = await API.get(`/tickets/assigned/${user.user_id}`);
-      const all: Ticket[] = res.data.data ?? [];
+      const [assignedRes, requesterRes] = await Promise.all([
+        API.get(`/tickets/assigned/${user.user_id}`),
+        API.get(`/tickets/requester/${user.user_id}`),
+      ]);
 
-      // Chỉ lấy TYPE1 và TYPE3
+      const assigned: Ticket[] = assignedRes.data.data ?? [];
+      const requester: Ticket[] = requesterRes.data.data ?? [];
+
+      // Merge + dedup theo ticket_id, chỉ lấy TYPE1 và TYPE3
+      const map = new Map<string, Ticket>();
+      [...assigned, ...requester]
+        .filter((t) => t.type === "TYPE1" || t.type === "TYPE3")
+        .forEach((t) => map.set(t.ticket_id, t));
+
       setTickets(
-        all
-          .filter((t) => t.type === "TYPE1" || t.type === "TYPE3")
-          .sort(
-            (a, b) =>
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-          ),
+        Array.from(map.values()).sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        ),
       );
     } catch (error) {
       console.error("Fetch error:", error);

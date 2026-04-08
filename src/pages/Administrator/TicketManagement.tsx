@@ -720,6 +720,7 @@ function Type2ReviewModal({
                       >
                         <option value="STAFF">Staff</option>
                         <option value="BI">BI</option>
+                        <option value="CUSTOMER">Customer</option>
                       </select>
                     </div>
                     <div>

@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 /* =========================
    TYPES
 ========================= */
-type Role = "ADMINISTRATOR" | "STAFF" | "BI";
+type Role = "ADMINISTRATOR" | "STAFF" | "BI" | "CUSTOMER";
 
 interface User {
   user_id: string;

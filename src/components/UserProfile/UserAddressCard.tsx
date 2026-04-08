@@ -1,59 +1,144 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// src/components/UserProfile/UserPasswordCard.tsx
+import { useState } from "react";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import { EyeCloseIcon, EyeIcon } from "../../icons";
+import API from "../../api";
+import toast from "react-hot-toast";
 
-export default function UserAddressCard() {
+function PasswordInput({
+  label,
+  name,
+  show,
+  onToggle,
+  value,
+  onChange,
+  error,
+}: {
+  label: string;
+  name: string;
+  show: boolean;
+  onToggle: () => void;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  error?: string;
+}) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div className="relative">
+        <Input
+          type={show ? "text" : "password"}
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={`Enter ${label.toLowerCase()}`}
+          className="pr-12"
+        />
+        <span
+          onClick={onToggle}
+          className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
+        >
+          {show ? (
+            <EyeIcon className="size-5" />
+          ) : (
+            <EyeCloseIcon className="size-5" />
+          )}
+        </span>
+      </div>
+      {error && <p className="mt-1 text-xs text-error-500">{error}</p>}
+    </div>
+  );
+}
+
+export default function UserPasswordCard() {
   const { isOpen, openModal, closeModal } = useModal();
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes...");
+  const [showOld, setShowOld] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const [form, setForm] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmNewPassword: "",
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    if (!form.oldPassword)
+      newErrors.oldPassword = "Current password is required.";
+    if (!form.newPassword) newErrors.newPassword = "New password is required.";
+    else if (form.newPassword.length < 8)
+      newErrors.newPassword = "Password must be at least 8 characters.";
+    if (!form.confirmNewPassword)
+      newErrors.confirmNewPassword = "Please confirm your new password.";
+    else if (form.newPassword !== form.confirmNewPassword)
+      newErrors.confirmNewPassword = "Passwords do not match.";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSave = async () => {
+    if (!validate()) return;
+    setLoading(true);
+    try {
+      await API.post("/users/change-password", {
+        oldPassword: form.oldPassword,
+        newPassword: form.newPassword,
+        confirmNewPassword: form.confirmNewPassword,
+      });
+      toast.success("Password changed successfully!");
+      setForm({ oldPassword: "", newPassword: "", confirmNewPassword: "" });
+      closeModal();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? "Failed to change password.";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setForm({ oldPassword: "", newPassword: "", confirmNewPassword: "" });
+    setErrors({});
     closeModal();
   };
+
   return (
     <>
       <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-6">
-              Address
+              Password
             </h4>
-
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
+            <div className="grid grid-cols-1 gap-4">
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  Country
+                  Current Password
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  United States.
+                  ••••••••••••
                 </p>
               </div>
-
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  City/State
+                  Last Changed
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  Phoenix, Arizona, United States.
-                </p>
-              </div>
-
-              <div>
-                <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  Postal Code
-                </p>
-                <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  ERT 2489
-                </p>
-              </div>
-
-              <div>
-                <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  TAX ID
-                </p>
-                <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  AS4568384
+                  Click Edit to update your password
                 </p>
               </div>
             </div>
@@ -82,46 +167,68 @@ export default function UserAddressCard() {
           </button>
         </div>
       </div>
-      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
+
+      <Modal
+        isOpen={isOpen}
+        onClose={handleClose}
+        className="max-w-[500px] m-4"
+      >
         <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Edit Address
+              Change Password
             </h4>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-              Update your details to keep your profile up-to-date.
+              Enter your current password and choose a new one.
             </p>
           </div>
-          <form className="flex flex-col">
+
+          <form
+            className="flex flex-col"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSave();
+            }}
+          >
             <div className="px-2 overflow-y-auto custom-scrollbar">
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                <div>
-                  <Label>Country</Label>
-                  <Input type="text" value="United States" />
-                </div>
+              <div className="flex flex-col gap-5">
+                <PasswordInput
+                  label="Current Password"
+                  name="oldPassword"
+                  show={showOld}
+                  onToggle={() => setShowOld(!showOld)}
+                  value={form.oldPassword}
+                  onChange={handleChange}
+                  error={errors.oldPassword}
+                />
+                <PasswordInput
+                  label="New Password"
+                  name="newPassword"
+                  show={showNew}
+                  onToggle={() => setShowNew(!showNew)}
+                  value={form.newPassword}
+                  onChange={handleChange}
+                  error={errors.newPassword}
+                />
 
-                <div>
-                  <Label>City/State</Label>
-                  <Input type="text" value="Arizona, United States." />
-                </div>
-
-                <div>
-                  <Label>Postal Code</Label>
-                  <Input type="text" value="ERT 2489" />
-                </div>
-
-                <div>
-                  <Label>TAX ID</Label>
-                  <Input type="text" value="AS4568384" />
-                </div>
+                <PasswordInput
+                  label="Confirm New Password"
+                  name="confirmNewPassword"
+                  show={showConfirm}
+                  onToggle={() => setShowConfirm(!showConfirm)}
+                  value={form.confirmNewPassword}
+                  onChange={handleChange}
+                  error={errors.confirmNewPassword}
+                />
               </div>
             </div>
+
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={closeModal}>
+              <Button size="sm" variant="outline" onClick={handleClose}>
                 Close
               </Button>
-              <Button size="sm" onClick={handleSave}>
-                Save Changes
+              <Button size="sm" disabled={loading}>
+                {loading ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </form>
