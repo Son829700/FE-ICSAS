@@ -14,6 +14,7 @@ export interface Department {
   department_name: string;
   manager: User;
   status: string;
+  department_type: "INTERNAL" | "EXTERNAL";
 }
 export default function UserInfoCard() {
   const { user } = useAuthContext();

@@ -143,7 +143,7 @@ export default function App() {
           <Route
             path="/ticket/:id"
             element={
-              <ProtectedRoute allowedRoles={["STAFF", "CUSTOMER"]}>
+              <ProtectedRoute allowedRoles={["STAFF", "CUSTOMER", "BI"]}>
                 <TicketDetail />
               </ProtectedRoute>
             }

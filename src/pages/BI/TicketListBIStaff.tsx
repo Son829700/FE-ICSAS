@@ -15,6 +15,7 @@ import {
 } from "../../components/ui/table";
 import toast from "react-hot-toast";
 import { useAuthContext } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 /* =======================
    CONSTANTS
@@ -572,6 +573,7 @@ export default function TicketListBIStaff() {
   const [page, setPage] = useState(1);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -599,9 +601,7 @@ export default function TicketListBIStaff() {
 
       // Merge + dedup theo ticket_id, chỉ lấy TYPE1 và TYPE3
       const map = new Map<string, Ticket>();
-      [...assigned, ...requester]
-        .filter((t) => t.type === "TYPE1" || t.type === "TYPE3")
-        .forEach((t) => map.set(t.ticket_id, t));
+      [...assigned, ...requester].forEach((t) => map.set(t.ticket_id, t));
 
       setTickets(
         Array.from(map.values()).sort(
@@ -940,13 +940,34 @@ export default function TicketListBIStaff() {
                         <Button
                           size="sm"
                           variant={needsAction ? "primary" : "outline"}
-                          onClick={() => setSelectedTicket(ticket)}
+                          onClick={() => {
+                            const isRequester =
+                              ticket.requester?.user_id === user?.user_id;
+                            const isAssigned =
+                              ticket.assigned_staff?.user_id === user?.user_id;
+                            const isApprover =
+                              ticket.approver?.user_id === user?.user_id;
+
+                            const isOwnTicket =
+                              isRequester || isAssigned || isApprover;
+                            const shouldNavigate =
+                              isOwnTicket || ticket.type === "TYPE2";
+
+                            if (shouldNavigate) {
+                              navigate(`/ticket/${ticket.ticket_id}`);
+                            } else {
+                              setSelectedTicket(ticket);
+                            }
+                          }}
                         >
                           {needsAction
                             ? "Start"
                             : inProgress
                               ? "Process"
-                              : "View"}
+                              : ticket.requester?.user_id === user?.user_id ||
+                                  ticket.type === "TYPE2"
+                                ? "Open"
+                                : "View"}
                         </Button>
                       </TableCell>
                     </TableRow>

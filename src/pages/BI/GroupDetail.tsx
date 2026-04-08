@@ -1,5 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Plus, Trash2, Search, X, Check, ArrowLeft, LayoutDashboard, Users } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Search,
+  X,
+  Check,
+  ArrowLeft,
+  LayoutDashboard,
+  Users,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import API from "../../api";
@@ -55,21 +64,30 @@ export interface Department {
   department_name: string;
   manager: User;
   status: string;
+  department_type: "INTERNAL" | "EXTERNAL";
 }
 
 const CATEGORY_STYLE: Record<string, string> = {
   OVERVIEW: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400",
-  ANALYTICS: "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400",
+  ANALYTICS:
+    "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400",
   SALES: "bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400",
   MARKETING: "bg-pink-50 text-pink-600 dark:bg-pink-500/10 dark:text-pink-400",
-  SUPPORT: "bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400",
+  SUPPORT:
+    "bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400",
 };
 
 /* =======================
    ADD MEMBER MODAL
 ======================= */
 function AddMemberModal({
-  isOpen, onClose, members, users, departments, groupId, onAdded,
+  isOpen,
+  onClose,
+  members,
+  users,
+  departments,
+  groupId,
+  onAdded,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -89,8 +107,10 @@ function AddMemberModal({
     .filter((u) => {
       const q = search.toLowerCase();
       const matchSearch =
-        u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
-      const matchDept = !filterDept || u.department?.department_id === filterDept;
+        u.username.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q);
+      const matchDept =
+        !filterDept || u.department?.department_id === filterDept;
       return matchSearch && matchDept;
     });
 
@@ -124,15 +144,22 @@ function AddMemberModal({
   };
 
   const handleClose = () => {
-    setSearch(""); setFilterDept(""); setSelectedIds([]); onClose();
+    setSearch("");
+    setFilterDept("");
+    setSelectedIds([]);
+    onClose();
   };
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} className="max-w-2xl p-6">
       <div className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-800">
         <div>
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Add Members</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Select one or more users to add</p>
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+            Add Members
+          </h3>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Select one or more users to add
+          </p>
         </div>
         {selectedIds.length > 0 && (
           <span className="inline-flex items-center rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
@@ -160,14 +187,18 @@ function AddMemberModal({
           >
             <option value="">All Departments</option>
             {departments.map((d) => (
-              <option key={d.department_id} value={d.department_id}>{d.department_name}</option>
+              <option key={d.department_id} value={d.department_id}>
+                {d.department_name}
+              </option>
             ))}
           </select>
         </div>
 
         <div className="max-h-64 overflow-y-auto rounded-xl border border-gray-100 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
           {available.length === 0 ? (
-            <p className="py-8 text-center text-sm text-gray-400">No users available.</p>
+            <p className="py-8 text-center text-sm text-gray-400">
+              No users available.
+            </p>
           ) : (
             available.map((u) => {
               const isSelected = selectedIds.includes(u.user_id);
@@ -181,14 +212,22 @@ function AddMemberModal({
                     {u.username.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 dark:text-white truncate">{u.username}</p>
+                    <p className="text-sm font-medium text-gray-800 dark:text-white truncate">
+                      {u.username}
+                    </p>
                     <p className="text-xs text-gray-500 truncate">{u.email}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className="text-xs text-gray-400">{u.department?.department_name ?? "—"}</span>
-                    <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-gray-800">{u.role}</span>
+                    <span className="text-xs text-gray-400">
+                      {u.department?.department_name ?? "—"}
+                    </span>
+                    <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-gray-800">
+                      {u.role}
+                    </span>
                   </div>
-                  <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${isSelected ? "border-brand-500 bg-brand-500" : "border-gray-300 dark:border-gray-600"}`}>
+                  <div
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${isSelected ? "border-brand-500 bg-brand-500" : "border-gray-300 dark:border-gray-600"}`}
+                  >
                     {isSelected && <Check className="size-3 text-white" />}
                   </div>
                 </div>
@@ -202,9 +241,15 @@ function AddMemberModal({
             {selectedIds.map((id) => {
               const u = users.find((x) => x.user_id === id);
               return (
-                <span key={id} className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
+                <span
+                  key={id}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
+                >
                   {u?.username}
-                  <X className="size-3 cursor-pointer" onClick={() => toggleSelect(id)} />
+                  <X
+                    className="size-3 cursor-pointer"
+                    onClick={() => toggleSelect(id)}
+                  />
                 </span>
               );
             })}
@@ -212,9 +257,17 @@ function AddMemberModal({
         )}
 
         <div className="flex justify-end gap-3 pt-2">
-          <Button variant="outline" onClick={handleClose} disabled={adding}>Cancel</Button>
-          <Button variant="primary" disabled={!selectedIds.length || adding} onClick={handleAdd}>
-            {adding ? "Adding..." : `Add ${selectedIds.length || ""} Member${selectedIds.length !== 1 ? "s" : ""}`}
+          <Button variant="outline" onClick={handleClose} disabled={adding}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            disabled={!selectedIds.length || adding}
+            onClick={handleAdd}
+          >
+            {adding
+              ? "Adding..."
+              : `Add ${selectedIds.length || ""} Member${selectedIds.length !== 1 ? "s" : ""}`}
           </Button>
         </div>
       </div>
@@ -226,7 +279,12 @@ function AddMemberModal({
    ADD DASHBOARD MODAL
 ======================= */
 function AddDashboardModal({
-  isOpen, onClose, dashboards, allDashboards, groupId, onAdded,
+  isOpen,
+  onClose,
+  dashboards,
+  allDashboards,
+  groupId,
+  onAdded,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -245,7 +303,9 @@ function AddDashboardModal({
     .filter((d) => !dashboards.some((gd) => gd.dashboard_id === d.dashboard_id))
     .filter((d) => d.status === "ACTIVE")
     .filter((d) => {
-      const matchSearch = d.dashboard_name.toLowerCase().includes(search.toLowerCase());
+      const matchSearch = d.dashboard_name
+        .toLowerCase()
+        .includes(search.toLowerCase());
       const matchCat = !filterCategory || d.category === filterCategory;
       return matchSearch && matchCat;
     });
@@ -262,10 +322,14 @@ function AddDashboardModal({
       await Promise.all(
         selectedIds.map(async (dashboardId) => {
           try {
-            await API.post(`/dashboard/grant-access/group/${groupId}/dashboard/${dashboardId}`);
+            await API.post(
+              `/dashboard/grant-access/group/${groupId}/dashboard/${dashboardId}`,
+            );
           } catch (err: any) {
             if (err.response?.status === 400)
-              await API.put(`/dashboard/restore-access/group/${groupId}/dashboard/${dashboardId}`);
+              await API.put(
+                `/dashboard/restore-access/group/${groupId}/dashboard/${dashboardId}`,
+              );
           }
         }),
       );
@@ -280,15 +344,22 @@ function AddDashboardModal({
   };
 
   const handleClose = () => {
-    setSearch(""); setFilterCategory(""); setSelectedIds([]); onClose();
+    setSearch("");
+    setFilterCategory("");
+    setSelectedIds([]);
+    onClose();
   };
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} className="max-w-2xl p-6">
       <div className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-800">
         <div>
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Grant Dashboard Access</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Select dashboards to grant to this group</p>
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+            Grant Dashboard Access
+          </h3>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Select dashboards to grant to this group
+          </p>
         </div>
         {selectedIds.length > 0 && (
           <span className="inline-flex items-center rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
@@ -316,14 +387,18 @@ function AddDashboardModal({
           >
             <option value="">All Categories</option>
             {categories.map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
             ))}
           </select>
         </div>
 
         <div className="max-h-64 overflow-y-auto rounded-xl border border-gray-100 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
           {available.length === 0 ? (
-            <p className="py-8 text-center text-sm text-gray-400">No dashboards available.</p>
+            <p className="py-8 text-center text-sm text-gray-400">
+              No dashboards available.
+            </p>
           ) : (
             available.map((d) => {
               const isSelected = selectedIds.includes(d.dashboard_id);
@@ -337,10 +412,18 @@ function AddDashboardModal({
                     {d.dashboard_name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 dark:text-white truncate">{d.dashboard_name}</p>
-                    <span className={`text-xs rounded-full px-2 py-0.5 ${CATEGORY_STYLE[d.category] ?? "bg-gray-100 text-gray-500"}`}>{d.category}</span>
+                    <p className="text-sm font-medium text-gray-800 dark:text-white truncate">
+                      {d.dashboard_name}
+                    </p>
+                    <span
+                      className={`text-xs rounded-full px-2 py-0.5 ${CATEGORY_STYLE[d.category] ?? "bg-gray-100 text-gray-500"}`}
+                    >
+                      {d.category}
+                    </span>
                   </div>
-                  <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${isSelected ? "border-brand-500 bg-brand-500" : "border-gray-300 dark:border-gray-600"}`}>
+                  <div
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${isSelected ? "border-brand-500 bg-brand-500" : "border-gray-300 dark:border-gray-600"}`}
+                  >
                     {isSelected && <Check className="size-3 text-white" />}
                   </div>
                 </div>
@@ -354,9 +437,15 @@ function AddDashboardModal({
             {selectedIds.map((id) => {
               const d = allDashboards.find((x) => x.dashboard_id === id);
               return (
-                <span key={id} className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
+                <span
+                  key={id}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
+                >
                   {d?.dashboard_name}
-                  <X className="size-3 cursor-pointer" onClick={() => toggleSelect(id)} />
+                  <X
+                    className="size-3 cursor-pointer"
+                    onClick={() => toggleSelect(id)}
+                  />
                 </span>
               );
             })}
@@ -364,9 +453,17 @@ function AddDashboardModal({
         )}
 
         <div className="flex justify-end gap-3 pt-2">
-          <Button variant="outline" onClick={handleClose} disabled={adding}>Cancel</Button>
-          <Button variant="primary" disabled={!selectedIds.length || adding} onClick={handleAdd}>
-            {adding ? "Granting..." : `Grant ${selectedIds.length || ""} Dashboard${selectedIds.length !== 1 ? "s" : ""}`}
+          <Button variant="outline" onClick={handleClose} disabled={adding}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            disabled={!selectedIds.length || adding}
+            onClick={handleAdd}
+          >
+            {adding
+              ? "Granting..."
+              : `Grant ${selectedIds.length || ""} Dashboard${selectedIds.length !== 1 ? "s" : ""}`}
           </Button>
         </div>
       </div>
@@ -377,7 +474,15 @@ function AddDashboardModal({
 /* =======================
    STAT CARD
 ======================= */
-function StatCard({ label, value, icon }: { label: string; value: string | number; icon: React.ReactNode }) {
+function StatCard({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string | number;
+  icon: React.ReactNode;
+}) {
   return (
     <div className="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-white/[0.02] p-4 flex items-center gap-4">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-500">
@@ -385,7 +490,9 @@ function StatCard({ label, value, icon }: { label: string; value: string | numbe
       </div>
       <div>
         <p className="text-xs text-gray-400">{label}</p>
-        <p className="text-lg font-semibold text-gray-800 dark:text-white">{value}</p>
+        <p className="text-lg font-semibold text-gray-800 dark:text-white">
+          {value}
+        </p>
       </div>
     </div>
   );
@@ -407,7 +514,9 @@ export default function GroupDetail() {
   const [loading, setLoading] = useState(true);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [isAddDashboardOpen, setIsAddDashboardOpen] = useState(false);
-  const [confirmType, setConfirmType] = useState<"member" | "dashboard" | null>(null);
+  const [confirmType, setConfirmType] = useState<"member" | "dashboard" | null>(
+    null,
+  );
   const [targetId, setTargetId] = useState<string | null>(null);
 
   const fetchMembers = async () => {
@@ -456,7 +565,9 @@ export default function GroupDetail() {
   const handleRemoveDashboard = async (dashboardId: string) => {
     if (!groupId) return;
     try {
-      await API.put(`/dashboard/revoke-access/group/${groupId}/dashboard/${dashboardId}`);
+      await API.put(
+        `/dashboard/revoke-access/group/${groupId}/dashboard/${dashboardId}`,
+      );
       toast.success("Dashboard access revoked.");
       await fetchDashboards();
     } catch {
@@ -469,7 +580,10 @@ export default function GroupDetail() {
 
   return (
     <div className="space-y-6">
-      <PageMeta title={`${group.group_name} | Group Detail`} description="Group detail" />
+      <PageMeta
+        title={`${group.group_name} | Group Detail`}
+        description="Group detail"
+      />
 
       {/* Back button */}
       <button
@@ -502,7 +616,10 @@ export default function GroupDetail() {
       {/* Confirm remove modal */}
       <Modal
         isOpen={confirmType !== null}
-        onClose={() => { setConfirmType(null); setTargetId(null); }}
+        onClose={() => {
+          setConfirmType(null);
+          setTargetId(null);
+        }}
         className="max-w-md p-6"
       >
         <div className="space-y-4">
@@ -510,7 +627,9 @@ export default function GroupDetail() {
             <Trash2 className="size-5 text-red-500" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-gray-800 dark:text-white">Confirm Remove</h3>
+            <h3 className="text-base font-semibold text-gray-800 dark:text-white">
+              Confirm Remove
+            </h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {confirmType === "member"
                 ? "Are you sure you want to remove this member from the group?"
@@ -518,14 +637,22 @@ export default function GroupDetail() {
             </p>
           </div>
           <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => { setConfirmType(null); setTargetId(null); }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setConfirmType(null);
+                setTargetId(null);
+              }}
+            >
               Cancel
             </Button>
             <button
               onClick={async () => {
                 if (!targetId) return;
-                if (confirmType === "member") await handleRemoveMember(targetId);
-                if (confirmType === "dashboard") await handleRemoveDashboard(targetId);
+                if (confirmType === "member")
+                  await handleRemoveMember(targetId);
+                if (confirmType === "dashboard")
+                  await handleRemoveDashboard(targetId);
                 setConfirmType(null);
                 setTargetId(null);
               }}
@@ -557,7 +684,9 @@ export default function GroupDetail() {
                         : "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400"
                     }`}
                   >
-                    {group.groupType === "TRADITIONAL" ? "Traditional" : "Adhoc"}
+                    {group.groupType === "TRADITIONAL"
+                      ? "Traditional"
+                      : "Adhoc"}
                   </span>
                   <span
                     className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -581,8 +710,16 @@ export default function GroupDetail() {
 
         {/* Stats row */}
         <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <StatCard label="Total Members" value={members.length} icon={<Users className="size-4" />} />
-          <StatCard label="Dashboards Granted" value={dashboards.length} icon={<LayoutDashboard className="size-4" />} />
+          <StatCard
+            label="Total Members"
+            value={members.length}
+            icon={<Users className="size-4" />}
+          />
+          <StatCard
+            label="Dashboards Granted"
+            value={dashboards.length}
+            icon={<LayoutDashboard className="size-4" />}
+          />
           <StatCard
             label="Created"
             value={new Date(group.createdAt).toLocaleDateString("en-GB", {
@@ -591,8 +728,18 @@ export default function GroupDetail() {
               year: "numeric",
             })}
             icon={
-              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+              <svg
+                className="size-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
+                />
               </svg>
             }
           />
@@ -605,8 +752,12 @@ export default function GroupDetail() {
         <div className="lg:col-span-3 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] overflow-hidden">
           <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-6 py-4">
             <div>
-              <h2 className="text-base font-semibold text-gray-800 dark:text-white">Members</h2>
-              <p className="text-xs text-gray-400 mt-0.5">{members.length} member{members.length !== 1 ? "s" : ""}</p>
+              <h2 className="text-base font-semibold text-gray-800 dark:text-white">
+                Members
+              </h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {members.length} member{members.length !== 1 ? "s" : ""}
+              </p>
             </div>
             <button
               onClick={async () => {
@@ -629,23 +780,34 @@ export default function GroupDetail() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-gray-800">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Department</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">
+                    User
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">
+                    Department
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">
+                    Role
+                  </th>
                   <th className="px-6 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {members.length > 0 ? (
                   members.map((m) => (
-                    <tr key={m.user_id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.01] transition">
+                    <tr
+                      key={m.user_id}
+                      className="hover:bg-gray-50/50 dark:hover:bg-white/[0.01] transition"
+                    >
                       <td className="px-6 py-3">
                         <div className="flex items-center gap-3">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-semibold text-gray-600 dark:text-gray-300">
                             {m.username.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-medium text-gray-800 dark:text-white">{m.username}</p>
+                            <p className="font-medium text-gray-800 dark:text-white">
+                              {m.username}
+                            </p>
                             <p className="text-xs text-gray-400">{m.email}</p>
                           </div>
                         </div>
@@ -660,7 +822,10 @@ export default function GroupDetail() {
                       </td>
                       <td className="px-6 py-3 text-right">
                         <button
-                          onClick={() => { setConfirmType("member"); setTargetId(m.user_id); }}
+                          onClick={() => {
+                            setConfirmType("member");
+                            setTargetId(m.user_id);
+                          }}
                           className="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-300 hover:bg-red-50 hover:text-red-500 transition dark:hover:bg-red-900/20"
                         >
                           <Trash2 className="size-3.5" />
@@ -670,7 +835,10 @@ export default function GroupDetail() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="px-6 py-10 text-center text-sm text-gray-400">
+                    <td
+                      colSpan={4}
+                      className="px-6 py-10 text-center text-sm text-gray-400"
+                    >
                       No members yet. Add one to get started.
                     </td>
                   </tr>
@@ -684,8 +852,12 @@ export default function GroupDetail() {
         <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] overflow-hidden">
           <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-6 py-4">
             <div>
-              <h2 className="text-base font-semibold text-gray-800 dark:text-white">Dashboards</h2>
-              <p className="text-xs text-gray-400 mt-0.5">{dashboards.length} granted</p>
+              <h2 className="text-base font-semibold text-gray-800 dark:text-white">
+                Dashboards
+              </h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {dashboards.length} granted
+              </p>
             </div>
             <button
               onClick={async () => {
@@ -714,13 +886,18 @@ export default function GroupDetail() {
                     <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
                       {d.dashboard_name}
                     </p>
-                    <span className={`text-xs rounded-full px-2 py-0.5 ${CATEGORY_STYLE[d.category] ?? "bg-gray-100 text-gray-500"}`}>
+                    <span
+                      className={`text-xs rounded-full px-2 py-0.5 ${CATEGORY_STYLE[d.category] ?? "bg-gray-100 text-gray-500"}`}
+                    >
                       {d.category}
                     </span>
                   </div>
                   {d.status === "ACTIVE" ? (
                     <button
-                      onClick={() => { setConfirmType("dashboard"); setTargetId(d.dashboard_id); }}
+                      onClick={() => {
+                        setConfirmType("dashboard");
+                        setTargetId(d.dashboard_id);
+                      }}
                       className="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-300 hover:bg-red-50 hover:text-red-500 transition dark:hover:bg-red-900/20 shrink-0"
                     >
                       <Trash2 className="size-3.5" />
@@ -735,7 +912,9 @@ export default function GroupDetail() {
             ) : (
               <div className="px-6 py-10 text-center">
                 <LayoutDashboard className="size-8 text-gray-200 dark:text-gray-700 mx-auto mb-2" />
-                <p className="text-sm text-gray-400">No dashboards granted yet.</p>
+                <p className="text-sm text-gray-400">
+                  No dashboards granted yet.
+                </p>
               </div>
             )}
           </div>

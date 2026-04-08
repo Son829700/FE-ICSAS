@@ -136,14 +136,14 @@ const getTimelineSteps = (type: string) => {
         key: "VERIFIED",
         label: "Verified",
         description: "Admin approved",
-        icon: <ShieldCheck  className="size-5" />,
+        icon: <ShieldCheck className="size-5" />,
       },
 
       {
         key: "RESOLVED",
         label: "Resolved",
         description: "Access granted to requester",
-        icon: <UserCheck  className="size-5" />,
+        icon: <UserCheck className="size-5" />,
       },
       {
         key: "DONE",
@@ -299,7 +299,7 @@ export default function TicketDetail() {
       <div className="flex flex-col gap-6">
         {/* BACK */}
         <button
-          onClick={() => navigate("/ticket")}
+          onClick={() => navigate(-1)}
           className="flex w-fit items-center gap-2 text-sm text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white transition"
         >
           <ArrowLeft className="size-4" />

@@ -9,7 +9,7 @@ import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import { Modal } from "../ui/modal";
-import { Store, Building2, Loader2, CheckCircle } from "lucide-react";
+import { Building2, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 /* =======================
@@ -55,11 +55,7 @@ export default function SignInForm() {
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [loadingDepartment, setLoadingDepartment] = useState(false);
 
-  // ── Modal: tạo ticket TYPE2 (CUSTOMER mới chưa có department) ──
-  const [showCustomerModal, setShowCustomerModal] = useState(false);
-  const [shopDescription, setShopDescription] = useState("");
-  const [submittingTicket, setSubmittingTicket] = useState(false);
-  const [ticketSubmitted, setTicketSubmitted] = useState(false);
+
 
   /* =====================
      GOOGLE LOGIN
@@ -79,14 +75,8 @@ export default function SignInForm() {
 
       setCurrentUser(user);
 
-      if (!user.department) {
-        if (user.role === "CUSTOMER") {
-          // CUSTOMER chưa có department → mở modal tạo ticket TYPE2
-          setShowCustomerModal(true);
-        } else {
-          // STAFF / BI chưa có department → mở modal chọn INTERNAL department
-          setShowDepartmentModal(true);
-        }
+      if (!user.department && user.role === "STAFF") {
+         setShowDepartmentModal(true);
       } else {
         navigate("/");
       }
@@ -130,25 +120,7 @@ export default function SignInForm() {
     }
   };
 
-  /* =====================
-     CUSTOMER TICKET MODAL
-  ===================== */
-  const handleSubmitCustomerTicket = async () => {
-    if (!shopDescription.trim() || !currentUser) return;
-    try {
-      setSubmittingTicket(true);
-      await API.post("/tickets/ticket_type2", {
-        type: "TYPE2",
-        description: shopDescription.trim(),
-      });
-      setTicketSubmitted(true);
-    } catch (err) {
-      console.error("Submit ticket failed", err);
-      toast.error("Failed to submit request. Please try again.");
-    } finally {
-      setSubmittingTicket(false);
-    }
-  };
+
 
   /* =====================
      RENDER
@@ -254,98 +226,7 @@ export default function SignInForm() {
         </div>
       </div>
 
-      {/* =============================================
-          MODAL 1: CUSTOMER → Tạo ticket TYPE2
-      ============================================= */}
-      <Modal
-        isOpen={showCustomerModal}
-        onClose={() => {}}
-        showCloseButton={false}
-        className="max-w-md p-6"
-      >
-        {!ticketSubmitted ? (
-          <>
-            {/* Header */}
-            <div className="flex items-center gap-3 mb-5">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/10">
-                <Store className="size-5 text-brand-500" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-                  Welcome! One more step
-                </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Tell us about your shop so we can set it up
-                </p>
-              </div>
-            </div>
 
-            {/* Info banner */}
-            <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:border-blue-800/40 dark:bg-blue-900/20 dark:text-blue-300">
-              Your request will be reviewed by an admin who will create your shop department and grant you access.
-            </div>
-
-            {/* Description field */}
-            <div className="mb-5">
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Shop / Business Description <span className="text-error-500">*</span>
-              </label>
-              <textarea
-                value={shopDescription}
-                onChange={(e) => setShopDescription(e.target.value)}
-                placeholder="e.g. We are a fashion retailer selling women's clothing. Shop name: Bloom Boutique. Contact: bloom@gmail.com"
-                rows={5}
-                className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500 resize-none"
-              />
-              <p className="mt-1.5 text-xs text-gray-400">
-                Include your shop name, what you sell, and any other relevant details.
-              </p>
-            </div>
-
-            {/* Submit button */}
-            <Button
-              className="w-full"
-              size="md"
-              variant="primary"
-              onClick={handleSubmitCustomerTicket}
-              disabled={!shopDescription.trim() || submittingTicket}
-            >
-              {submittingTicket ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="size-4 animate-spin" />
-                  Submitting...
-                </span>
-              ) : (
-                "Submit Registration Request"
-              )}
-            </Button>
-          </>
-        ) : (
-          /* ── Success state ── */
-          <div className="flex flex-col items-center py-4 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success-50 dark:bg-success-900/20 mb-4">
-              <CheckCircle className="size-8 text-success-500" />
-            </div>
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
-              Request Submitted!
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-              Your shop registration request has been sent to the admin team.
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              You'll receive an email once your shop is activated.
-            </p>
-            <Button
-              className="w-full"
-              size="md"
-              variant="outline"
-              onClick={() => navigate("/ticket")}
-            >
-              View My Tickets
-            </Button>
-          </div>
-        )}
-      </Modal>
 
       {/* =============================================
           MODAL 2: STAFF/BI → Chọn INTERNAL department

@@ -52,6 +52,7 @@ export interface Department {
   department_id: string;
   department_name: string;
   status: string;
+  department_type: "INTERNAL" | "EXTERNAL";
 }
 
 /* =======================

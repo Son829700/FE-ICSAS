@@ -34,6 +34,7 @@ export interface Department {
   department_name: string;
   manager: User;
   status: string;
+  department_type: "INTERNAL" | "EXTERNAL";
 }
 
 interface User {
