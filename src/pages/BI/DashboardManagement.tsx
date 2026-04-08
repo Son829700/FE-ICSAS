@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
 import API from "../../api";
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  RotateCcw,
-  Eye,
-  X,
-} from "lucide-react";
+import { Plus, Pencil, Trash2, RotateCcw, Eye, X } from "lucide-react";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
@@ -22,7 +15,6 @@ import {
 } from "../../components/ui/table";
 import toast from "react-hot-toast";
 import DashboardViewer from "../Dashboard/DashboardViewer";
-
 
 /* =======================
    TYPES
@@ -61,21 +53,16 @@ export interface Department {
 const STATUS_STYLE: Record<string, string> = {
   ACTIVE:
     "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  DRAFT:
-    "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  INACTIVE:
-    "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
+  DRAFT: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  INACTIVE: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
 };
 
 const CATEGORY_STYLE: Record<string, string> = {
-  OVERVIEW:
-    "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400",
+  OVERVIEW: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400",
   ANALYTICS:
     "bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400",
-  SALES:
-    "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400",
-  MARKETING:
-    "bg-pink-50 text-pink-600 dark:bg-pink-900/20 dark:text-pink-400",
+  SALES: "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400",
+  MARKETING: "bg-pink-50 text-pink-600 dark:bg-pink-900/20 dark:text-pink-400",
   SUPPORT:
     "bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400",
 };
@@ -113,7 +100,6 @@ function DashboardViewModal({
             </div>
           </div>
           <div className="flex items-center gap-2">
-          
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition"
@@ -168,8 +154,12 @@ function DashboardViewModal({
 ======================= */
 export default function DashboardManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingDashboard, setEditingDashboard] = useState<Dashboard | null>(null);
-  const [viewingDashboard, setViewingDashboard] = useState<Dashboard | null>(null);
+  const [editingDashboard, setEditingDashboard] = useState<Dashboard | null>(
+    null,
+  );
+  const [viewingDashboard, setViewingDashboard] = useState<Dashboard | null>(
+    null,
+  );
   const [dashboards, setDashboards] = useState<Dashboard[]>([]);
   const [formData, setFormData] = useState({
     dashboard_name: "",
@@ -211,6 +201,11 @@ export default function DashboardManagement() {
 
   const handleAddClick = () => {
     setEditingDashboard(null);
+    setFormData({
+      dashboard_name: "",
+      url_path: "",
+      category: "",
+    });
     setIsModalOpen(true);
   };
 
@@ -242,6 +237,11 @@ export default function DashboardManagement() {
         toast.success("Dashboard created! Awaiting Admin approval.");
       }
       await fetchDashboards();
+      setFormData({
+        dashboard_name: "",
+        url_path: "",
+        category: "",
+      });
       handleCloseModal();
     } catch (error) {
       console.error("Submit error:", error);
@@ -320,22 +320,40 @@ export default function DashboardManagement() {
           <Table>
             <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
               <TableRow>
-                <TableCell isHeader className="px-5 py-3 text-start text-theme-xs text-gray-500">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 text-start text-theme-xs text-gray-500"
+                >
                   Name
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 text-start text-theme-xs text-gray-500">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 text-start text-theme-xs text-gray-500"
+                >
                   Category
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 text-start text-theme-xs text-gray-500">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 text-start text-theme-xs text-gray-500"
+                >
                   Status
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 text-start text-theme-xs text-gray-500">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 text-start text-theme-xs text-gray-500"
+                >
                   URL
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 text-start text-theme-xs text-gray-500">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 text-start text-theme-xs text-gray-500"
+                >
                   Created By
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 text-right text-theme-xs text-gray-500">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 text-right text-theme-xs text-gray-500"
+                >
                   Actions
                 </TableCell>
               </TableRow>
@@ -471,7 +489,11 @@ export default function DashboardManagement() {
       </ComponentCard>
 
       {/* Create / Edit Modal */}
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal} className="max-w-lg p-6">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        className="max-w-lg p-6"
+      >
         <div className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-800">
           <div>
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
@@ -553,7 +575,7 @@ export default function DashboardManagement() {
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={handleCloseModal} >
+            <Button variant="outline" onClick={handleCloseModal}>
               Cancel
             </Button>
             <Button variant="primary">

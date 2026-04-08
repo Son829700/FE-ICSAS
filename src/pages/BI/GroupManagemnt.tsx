@@ -133,7 +133,11 @@ export default function GroupManagement() {
         groupType: editingGroup.groupType ?? "TRADITIONAL",
       });
     } else {
-      setFormData({ group_name: "", description: "", groupType: "TRADITIONAL" });
+      setFormData({
+        group_name: "",
+        description: "",
+        groupType: "TRADITIONAL",
+      });
     }
   }, [editingGroup]);
 
@@ -168,6 +172,11 @@ export default function GroupManagement() {
         toast.success("Group created!");
       }
       await fetchGroups();
+      setFormData({
+        group_name: "",
+        description: "",
+        groupType: "TRADITIONAL",
+      });
       handleCloseModal();
     } catch (error) {
       console.error("Submit error:", error);
@@ -221,7 +230,9 @@ export default function GroupManagement() {
 
   // Stats
   const total = groups.length;
-  const traditional = groups.filter((g) => g.groupType === "TRADITIONAL").length;
+  const traditional = groups.filter(
+    (g) => g.groupType === "TRADITIONAL",
+  ).length;
   const adhoc = groups.filter((g) => g.groupType === "ADHOC").length;
   const totalMembers = groups.reduce((sum, g) => sum + (g.member ?? 0), 0);
 
@@ -229,11 +240,15 @@ export default function GroupManagement() {
     <div className="flex flex-col ml-1">
       <ChevronUp
         size={10}
-        className={sortKey === col && sortAsc ? "text-brand-500" : "text-gray-300"}
+        className={
+          sortKey === col && sortAsc ? "text-brand-500" : "text-gray-300"
+        }
       />
       <ChevronDown
         size={10}
-        className={sortKey === col && !sortAsc ? "text-brand-500" : "text-gray-300"}
+        className={
+          sortKey === col && !sortAsc ? "text-brand-500" : "text-gray-300"
+        }
       />
     </div>
   );
@@ -246,10 +261,18 @@ export default function GroupManagement() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-6 sm:grid-cols-4">
         {[
-          { label: "Total Groups", value: total, color: "text-gray-800 dark:text-white" },
+          {
+            label: "Total Groups",
+            value: total,
+            color: "text-gray-800 dark:text-white",
+          },
           { label: "Traditional", value: traditional, color: "text-blue-600" },
           { label: "Adhoc", value: adhoc, color: "text-purple-600" },
-          { label: "Total Members", value: totalMembers, color: "text-emerald-600" },
+          {
+            label: "Total Members",
+            value: totalMembers,
+            color: "text-emerald-600",
+          },
         ].map(({ label, value, color }) => (
           <div
             key={label}
@@ -443,7 +466,9 @@ export default function GroupManagement() {
               ) : (
                 <TableRow>
                   <TableCell className="px-5 py-12 text-center text-sm text-gray-400">
-                    {search ? `No groups matching "${search}".` : "No groups found."}
+                    {search
+                      ? `No groups matching "${search}".`
+                      : "No groups found."}
                   </TableCell>
                 </TableRow>
               )}
@@ -500,7 +525,11 @@ export default function GroupManagement() {
       </ComponentCard>
 
       {/* Modal */}
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal} className="max-w-lg p-6">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        className="max-w-lg p-6"
+      >
         <div className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-800">
           <div>
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
@@ -602,7 +631,7 @@ export default function GroupManagement() {
             <Button variant="outline" onClick={handleCloseModal}>
               Cancel
             </Button>
-            <Button variant="primary" >
+            <Button variant="primary">
               {editingGroup ? "Save Changes" : "Create Group"}
             </Button>
           </div>
