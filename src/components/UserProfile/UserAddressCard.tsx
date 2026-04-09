@@ -37,16 +37,15 @@ function PasswordInput({
           value={value}
           onChange={onChange}
           placeholder={`Enter ${label.toLowerCase()}`}
-          className="pr-12"
         />
         <span
           onClick={onToggle}
           className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
         >
           {show ? (
-            <EyeIcon className="size-5" />
+            <EyeIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
           ) : (
-            <EyeCloseIcon className="size-5" />
+            <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
           )}
         </span>
       </div>

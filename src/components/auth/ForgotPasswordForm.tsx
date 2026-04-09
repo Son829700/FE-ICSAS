@@ -10,15 +10,28 @@ const OTP_LENGTH = 6;
 
 export default function ForgotPasswordForm() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<Step>("email");
+  const [step, setStep] = useState<Step>(() => (sessionStorage.getItem("fw_step") as Step) || "email");
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => sessionStorage.getItem("fw_email") || "");
 
   // OTP
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [otpError, setOtpError] = useState("");
-  const [countdown, setCountdown] = useState(60);
-  const [canResend, setCanResend] = useState(false);
+  const [countdown, setCountdown] = useState(() => {
+    const saved = sessionStorage.getItem("fw_countdown_end");
+    if (saved) {
+      const remaining = Math.floor((parseInt(saved) - Date.now()) / 1000);
+      return remaining > 0 ? remaining : 0;
+    }
+    return 60;
+  });
+  const [canResend, setCanResend] = useState(() => {
+    const saved = sessionStorage.getItem("fw_countdown_end");
+    if (saved) {
+      return parseInt(saved) <= Date.now();
+    }
+    return false;
+  });
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Password
@@ -48,6 +61,9 @@ export default function ForgotPasswordForm() {
       await API.post("/users/send-otp", null, { params: { email: email.trim() } });
       setCountdown(60); setCanResend(false);
       setStep("reset");
+      sessionStorage.setItem("fw_step", "reset");
+      sessionStorage.setItem("fw_email", email.trim());
+      sessionStorage.setItem("fw_countdown_end", (Date.now() + 60000).toString());
       setTimeout(() => inputRefs.current[0]?.focus(), 100);
       toast.success("OTP sent to your email!");
     } catch (err: any) {
@@ -87,6 +103,7 @@ export default function ForgotPasswordForm() {
       await API.post("/users/send-otp", null, { params: { email: email.trim() } });
       setOtp(Array(OTP_LENGTH).fill(""));
       setCountdown(60); setCanResend(false); setOtpError("");
+      sessionStorage.setItem("fw_countdown_end", (Date.now() + 60000).toString());
       inputRefs.current[0]?.focus();
       toast.success("New OTP sent!");
     } catch { toast.error("Failed to resend OTP."); }
@@ -110,6 +127,9 @@ export default function ForgotPasswordForm() {
         params: { email: email.trim(), otp: otp.join(""), newPassword },
       });
       setStep("success");
+      sessionStorage.removeItem("fw_step");
+      sessionStorage.removeItem("fw_email");
+      sessionStorage.removeItem("fw_countdown_end");
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? "Invalid or expired OTP.";
       setOtpError(msg);
@@ -132,13 +152,22 @@ export default function ForgotPasswordForm() {
   return (
     <div className="flex flex-col flex-1 w-full lg:w-1/2">
       {/* Back to sign in */}
-      <div className="w-full max-w-md pt-10 mx-auto">
-        <Link
-          to="/signin"
-          className="inline-flex items-center gap-1 text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-        >
-          <BackChevron /> Back to sign in
-        </Link>
+      <div className="w-full max-w-md pt-10 mx-auto min-h-[64px]">
+        {step === "email" ? (
+          <Link
+            to="/signin"
+            className="inline-flex items-center gap-1 text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+          >
+            <BackChevron /> Back to sign in
+          </Link>
+        ) : step === "reset" ? (
+          <button
+            onClick={() => { setStep("email"); sessionStorage.setItem("fw_step", "email"); }}
+            className="inline-flex items-center gap-1 text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+          >
+            <BackChevron /> Back to email
+          </button>
+        ) : null}
       </div>
 
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
@@ -185,6 +214,16 @@ export default function ForgotPasswordForm() {
                     ? <span className="flex items-center gap-2"><Spinner />Sending...</span>
                     : "Send Verification Code"}
                 </button>
+
+                {sessionStorage.getItem("fw_email") === email.trim() && email.trim() !== "" && (
+                  <button
+                    type="button"
+                    onClick={() => { setStep("reset"); sessionStorage.setItem("fw_step", "reset"); }}
+                    className="flex justify-center items-center w-full px-4 py-3 text-sm font-medium transition rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                  >
+                    I already have an OTP
+                  </button>
+                )}
               </div>
             </form>
 
@@ -203,12 +242,7 @@ export default function ForgotPasswordForm() {
         {step === "reset" && (
           <>
             <div className="mb-5 sm:mb-8">
-              <button
-                onClick={() => { setStep("email"); setOtp(Array(OTP_LENGTH).fill("")); setOtpError(""); setPasswordError(""); }}
-                className="mb-4 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 transition"
-              >
-                <BackChevron /> Change email
-              </button>
+            
               <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
                 Reset Password
               </h1>

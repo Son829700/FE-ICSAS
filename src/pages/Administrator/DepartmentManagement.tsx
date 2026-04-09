@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import API from "../../api";
-import { Plus, Pencil, MoreHorizontal, Building2, Users, CheckCircle, Globe, Lock } from "lucide-react";
+import { Plus, Building2,  CheckCircle, Globe, Lock, Eye } from "lucide-react";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
@@ -48,37 +48,15 @@ function ActionDropdown({
   department: Department;
   onEdit: (d: Department) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-
   return (
-    <div className="relative flex justify-end" ref={ref}>
+    <div className="flex justify-end">
       <button
-        onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center justify-center rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition dark:hover:bg-gray-800 dark:hover:text-gray-200"
+        onClick={() => onEdit(department)}
+        className="inline-flex items-center justify-center rounded-lg p-2 text-gray-400 hover:bg-brand-50 hover:text-brand-600 transition dark:hover:bg-white/[0.04] dark:hover:text-brand-400"
+        title="View / Edit"
       >
-        <MoreHorizontal className="size-4" />
+        <Eye className="size-4" />
       </button>
-
-      {open && (
-        <div className="absolute right-0 z-30 mt-8 w-40 rounded-xl border border-gray-100 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-          <button
-            onClick={() => { onEdit(department); setOpen(false); }}
-            className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.04] transition"
-          >
-            <Pencil className="size-4 text-gray-400" />
-            Edit
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -176,7 +154,13 @@ export default function DepartmentManagement() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const newState = { ...prev, [name]: value };
+      if (name === "department_type" && prev.department_type !== value) {
+        newState.managerId = "";
+      }
+      return newState;
+    });
   };
 
   /* =====================
@@ -313,11 +297,10 @@ export default function DepartmentManagement() {
                 <button
                   key={t}
                   onClick={() => { setTypeFilter(t); setPage(1); }}
-                  className={`h-9 rounded-md px-3 text-xs font-medium transition ${
-                    typeFilter === t
+                  className={`h-9 rounded-md px-3 text-xs font-medium transition ${typeFilter === t
                       ? "bg-white shadow-sm text-gray-900 dark:bg-gray-800 dark:text-white"
                       : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
-                  }`}
+                    }`}
                 >
                   {t === "ALL" ? "All Types" : t.charAt(0) + t.slice(1).toLowerCase()}
                 </button>
@@ -330,11 +313,10 @@ export default function DepartmentManagement() {
                 <button
                   key={s}
                   onClick={() => { setStatusFilter(s); setPage(1); }}
-                  className={`h-9 rounded-md px-3 text-xs font-medium transition ${
-                    statusFilter === s
+                  className={`h-9 rounded-md px-3 text-xs font-medium transition ${statusFilter === s
                       ? "bg-white shadow-sm text-gray-900 dark:bg-gray-800 dark:text-white"
                       : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
-                  }`}
+                    }`}
                 >
                   {s === "ALL" ? "All Status" : s.charAt(0) + s.slice(1).toLowerCase()}
                 </button>
@@ -382,23 +364,20 @@ export default function DepartmentManagement() {
                 paginated.map((department) => (
                   <TableRow
                     key={department.department_id}
-                    className={`transition hover:bg-gray-50/50 dark:hover:bg-white/[0.01] ${
-                      department.status === "INACTIVE" ? "opacity-60" : ""
-                    }`}
+                    className={`transition hover:bg-gray-50/50 dark:hover:bg-white/[0.01] ${department.status === "INACTIVE" ? "opacity-60" : ""
+                      }`}
                   >
                     {/* Name */}
                     <TableCell className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                          department.department_type === "EXTERNAL"
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${department.department_type === "EXTERNAL"
                             ? "bg-purple-50 dark:bg-purple-500/10"
                             : "bg-brand-50 dark:bg-brand-500/10"
-                        }`}>
-                          <Building2 className={`size-4 ${
-                            department.department_type === "EXTERNAL"
+                          }`}>
+                          <Building2 className={`size-4 ${department.department_type === "EXTERNAL"
                               ? "text-purple-500"
                               : "text-brand-500"
-                          }`} />
+                            }`} />
                         </div>
                         <span className="font-medium text-gray-800 dark:text-white/90">
                           {department.department_name}
@@ -435,11 +414,10 @@ export default function DepartmentManagement() {
                     {/* Status */}
                     <TableCell className="px-5 py-4">
                       <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          department.status === "ACTIVE"
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${department.status === "ACTIVE"
                             ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                             : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
-                        }`}
+                          }`}
                       >
                         {department.status}
                       </span>
@@ -495,11 +473,10 @@ export default function DepartmentManagement() {
                   <button
                     key={p}
                     onClick={() => setPage(p as number)}
-                    className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition ${
-                      page === p
+                    className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition ${page === p
                         ? "bg-brand-500 text-white"
                         : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-                    }`}
+                      }`}
                   >
                     {p}
                   </button>
@@ -576,9 +553,8 @@ export default function DepartmentManagement() {
                 return (
                   <label
                     key={t}
-                    className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition ${
-                      isSelected ? selectedStyle : "border-gray-200 hover:border-gray-300 dark:border-gray-700"
-                    }`}
+                    className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition ${isSelected ? selectedStyle : "border-gray-200 hover:border-gray-300 dark:border-gray-700"
+                      }`}
                   >
                     <input
                       type="radio"
@@ -590,9 +566,8 @@ export default function DepartmentManagement() {
                     />
                     <div className="mt-0.5 flex shrink-0 items-center justify-center">
                       <div
-                        className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${
-                          isSelected ? radioStyle : "border-gray-300"
-                        }`}
+                        className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${isSelected ? radioStyle : "border-gray-300"
+                          }`}
                       >
                         {isSelected && <div className={`h-2 w-2 rounded-full ${dotStyle}`} />}
                       </div>
@@ -601,9 +576,8 @@ export default function DepartmentManagement() {
                       <div className="flex items-center gap-1.5">
                         <Icon className={`size-3.5 ${isSelected ? iconStyle : "text-gray-400"}`} />
                         <span
-                          className={`text-sm font-medium ${
-                            isSelected ? textStyle : "text-gray-600 dark:text-gray-400"
-                          }`}
+                          className={`text-sm font-medium ${isSelected ? textStyle : "text-gray-600 dark:text-gray-400"
+                            }`}
                         >
                           {t.charAt(0) + t.slice(1).toLowerCase()}
                         </span>
@@ -630,7 +604,14 @@ export default function DepartmentManagement() {
               className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
               <option value="">— No manager assigned —</option>
-              {users.map((user) => (
+              {users
+                .filter((user) => {
+                  const role = user.role?.toUpperCase() || "";
+                  return formData.department_type === "INTERNAL"
+                    ? role !== "CUSTOMER"
+                    : role === "CUSTOMER";
+                })
+                .map((user) => (
                 <option key={user.user_id} value={user.user_id}>
                   {user.username} ({user.role})
                 </option>
@@ -648,13 +629,12 @@ export default function DepartmentManagement() {
                 {(["ACTIVE", "INACTIVE"] as const).map((s) => (
                   <label
                     key={s}
-                    className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${
-                      formData.status === s
+                    className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${formData.status === s
                         ? s === "ACTIVE"
                           ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10"
                           : "border-red-400 bg-red-50 dark:bg-red-900/10"
                         : "border-gray-200 hover:border-gray-300 dark:border-gray-700"
-                    }`}
+                      }`}
                   >
                     <input
                       type="radio"
@@ -665,22 +645,20 @@ export default function DepartmentManagement() {
                       className="hidden"
                     />
                     <div
-                      className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${
-                        formData.status === s
+                      className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${formData.status === s
                           ? s === "ACTIVE" ? "border-emerald-500" : "border-red-400"
                           : "border-gray-300"
-                      }`}
+                        }`}
                     >
                       {formData.status === s && (
                         <div className={`h-2 w-2 rounded-full ${s === "ACTIVE" ? "bg-emerald-500" : "bg-red-400"}`} />
                       )}
                     </div>
                     <span
-                      className={`text-sm font-medium ${
-                        formData.status === s
+                      className={`text-sm font-medium ${formData.status === s
                           ? s === "ACTIVE" ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
                           : "text-gray-600 dark:text-gray-400"
-                      }`}
+                        }`}
                     >
                       {s.charAt(0) + s.slice(1).toLowerCase()}
                     </span>
