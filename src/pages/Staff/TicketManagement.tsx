@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "../../components/ui/table";
 import CreateTicketModal from "./../AddTicketCard";
+import ReviewTicketModal from "../Manager/ReviewTicketModal";
 import { useNavigate } from "react-router-dom";
 /* =======================
    CONSTANTS
@@ -93,6 +94,7 @@ interface FilterValue {
 export default function SupportTicketPage() {
   const { user, isManager } = useAuthContext();
   const [isOpen, setIsOpen] = useState(false);
+  const [reviewTicketId, setReviewTicketId] = useState<string | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [filter, setFilter] = useState<FilterValue>({ type: "", status: "" });
   const [filterOpen, setFilterOpen] = useState(false);
@@ -194,6 +196,15 @@ export default function SupportTicketPage() {
         onClose={() => setIsOpen(false)}
         onSuccess={handleSuccess}
         allowedTypes={isManager ? ["TYPE2"] : undefined}
+      />
+      <ReviewTicketModal
+        isOpen={!!reviewTicketId}
+        onClose={() => setReviewTicketId(null)}
+        ticketId={reviewTicketId}
+        onSuccess={() => {
+          fetchTickets();
+          setReviewTicketId(null);
+        }}
       />
 
       <PageMeta
@@ -521,7 +532,7 @@ export default function SupportTicketPage() {
                             variant={needsReview ? "primary" : "outline"}
                             onClick={() => {
                               if (isManager && !isOwnTicket) {
-                                navigate(`/manager/ticket/${ticket.ticket_id}`); // trang approve
+                                setReviewTicketId(ticket.ticket_id);
                               } else {
                                 navigate(`/ticket/${ticket.ticket_id}`); // trang timeline
                               }

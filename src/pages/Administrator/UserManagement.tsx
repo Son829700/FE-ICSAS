@@ -353,7 +353,6 @@ function ActionMenu({
   onClose,
   onView,
   onToggleStatus,
-  onSendEmail,
 }: {
   open: boolean;
   user: User;
@@ -361,7 +360,6 @@ function ActionMenu({
   onClose: () => void;
   onView: () => void;
   onToggleStatus: () => void;
-  onSendEmail?: () => void;
 }) {
   const { refs, floatingStyles } = useFloating({
     placement: "bottom-end",
@@ -411,17 +409,6 @@ function ActionMenu({
           >
             <Users className="size-4" /> Edit User
           </button>
-          {isCustomer && !isActive && onSendEmail && (
-            <button
-              onClick={() => {
-                onSendEmail();
-                onClose();
-              }}
-              className="flex w-full items-center gap-2 px-4 py-2 text-sm text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-900/20 transition"
-            >
-              <Mail className="size-4" /> Send Activation Email
-            </button>
-          )}
           <button
             onClick={() => {
               onToggleStatus();
@@ -656,23 +643,6 @@ export default function UserManagement() {
       toast.error("Failed to update user status.");
     } finally {
       setConfirmUser(null);
-    }
-  };
-
-  const handleSendActivationEmail = async (user: User) => {
-    try {
-      await sendEmail(
-        user.email,
-        "ICSAS — Account Activation Notice",
-        buildActivationEmailBody({
-          username: user.username,
-          email: user.email,
-          shopName: user.department?.department_name,
-        }),
-      );
-      toast.success(`Activation email sent to ${user.email}`);
-    } catch {
-      toast.error("Failed to send email.");
     }
   };
 
@@ -1032,11 +1002,6 @@ export default function UserManagement() {
                         onClose={() => setActiveMenuId(null)}
                         onView={() => setEditingUser(u)}
                         onToggleStatus={() => setConfirmUser(u)}
-                        onSendEmail={
-                          u.role === "CUSTOMER"
-                            ? () => handleSendActivationEmail(u)
-                            : undefined
-                        }
                       />
                     </td>
                   </tr>

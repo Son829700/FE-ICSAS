@@ -887,6 +887,11 @@ export default function TicketListBIStaff() {
                 paginatedTickets.map((ticket) => {
                   const needsAction = ticket.status === "APPROVED";
                   const inProgress = ticket.status === "IN_PROGRESS";
+                  const isAssigned =
+                    ticket.assigned_staff?.user_id === user?.user_id;
+                  const isRequester =
+                    ticket.requester?.user_id === user?.user_id;
+
                   return (
                     <TableRow
                       key={ticket.ticket_id}
@@ -941,19 +946,9 @@ export default function TicketListBIStaff() {
                           size="sm"
                           variant={needsAction ? "primary" : "outline"}
                           onClick={() => {
-                            const isRequester =
-                              ticket.requester?.user_id === user?.user_id;
-                            const isAssigned =
-                              ticket.assigned_staff?.user_id === user?.user_id;
-                            const isApprover =
-                              ticket.approver?.user_id === user?.user_id;
-
-                            const isOwnTicket =
-                              isRequester || isAssigned || isApprover;
-                            const shouldNavigate =
-                              isOwnTicket || ticket.type === "TYPE2";
-
-                            if (shouldNavigate) {
+                            if (isAssigned) {
+                              setSelectedTicket(ticket);
+                            } else if (isRequester) {
                               navigate(`/ticket/${ticket.ticket_id}`);
                             } else {
                               setSelectedTicket(ticket);
@@ -964,8 +959,7 @@ export default function TicketListBIStaff() {
                             ? "Start"
                             : inProgress
                               ? "Process"
-                              : ticket.requester?.user_id === user?.user_id ||
-                                  ticket.type === "TYPE2"
+                              : isRequester && !isAssigned
                                 ? "Open"
                                 : "View"}
                         </Button>
