@@ -70,7 +70,7 @@ export function buildActivationEmailBody(params: {
   <div style="${CARD_STYLE}">
 
     <!-- Header -->
-    <div style="${HEADER_STYLE}">
+    <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 36px 40px 28px; text-align: center;">
       <div style="
         width: 64px; height: 64px;
         background: rgba(255,255,255,0.15);
@@ -95,12 +95,126 @@ export function buildActivationEmailBody(params: {
       </p>
 
       <p style="margin:0 0 20px; font-size:14px; color:#64748b; line-height:1.6;">
-        Your account has been successfully activated. You can now access the system using your registered credentials.
+        Your account has been successfully activated by our administrators. You can now log into the portal.
       </p>
 
-      ${
-        shopName
-          ? `
+      <!-- IMPORTANT NEXT STEP VISUAL BLOCK -->
+      <div style="
+        background: #fff7ed;
+        border: 1px solid #fed7aa;
+        border-radius: 12px;
+        padding: 24px;
+        margin-top: 10px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 10px rgba(234, 88, 12, 0.05);
+      ">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <div style="
+            display: inline-block;
+            background: #ffedd5;
+            color: #ea580c;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 1px solid #fdba74;
+          ">
+            🚀 Action Required
+          </div>
+          <h2 style="margin: 12px 0 0; color: #9a3412; font-size: 18px;">
+            Set up your Role & Department
+          </h2>
+          <p style="margin: 6px 0 0; color: #c2410c; font-size: 13px;">
+            Complete these steps to unlock your dashboards.
+          </p>
+        </div>
+
+        <!-- Step 1 -->
+        <div style="display: flex; align-items: flex-start; margin-bottom: 16px;">
+          <div style="
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            background: #ea580c;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            margin-right: 14px;
+            box-shadow: 0 2px 5px rgba(234, 88, 12, 0.3);
+          ">1</div>
+          <div style="padding-top: 6px;">
+            <p style="margin: 0; font-size: 14px; color: #1e293b; font-weight: 600;">
+              Log in to the Portal
+            </p>
+            <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">
+              Use the link below to access your account.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div style="display: flex; align-items: flex-start; margin-bottom: 16px;">
+          <div style="
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            background: #ea580c;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            margin-right: 14px;
+            box-shadow: 0 2px 5px rgba(234, 88, 12, 0.3);
+          ">2</div>
+          <div style="padding-top: 6px;">
+            <p style="margin: 0; font-size: 14px; color: #1e293b; font-weight: 600;">
+              Navigate to "Support Ticket"
+            </p>
+            <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">
+              Go to the Support Ticket page and click <b>Create Ticket</b>.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div style="display: flex; align-items: flex-start;">
+          <div style="
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            background: #ea580c;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            margin-right: 14px;
+            box-shadow: 0 2px 5px rgba(234, 88, 12, 0.3);
+          ">3</div>
+          <div style="padding-top: 6px;">
+            <p style="margin: 0; font-size: 14px; color: #1e293b; font-weight: 600;">
+              Select "User Account Management"
+            </p>
+            <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">
+              Choose Ticket Type 2 and submit your request to be assigned a specific Department and Role.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      ${shopName
+      ? `
       <div style="
         background: #f0fdf4;
         border: 1px solid #bbf7d0;
@@ -113,8 +227,8 @@ export function buildActivationEmailBody(params: {
         </p>
       </div>
       `
-          : ""
-      }
+      : ""
+    }
 
       <!-- Account Info -->
       <div style="
@@ -149,7 +263,7 @@ export function buildActivationEmailBody(params: {
         <a href="${domain}" style="
           font-size:14px;
           font-weight:600;
-          color:#1a56db;
+          color:#ea580c;
           text-decoration:none;
         ">
           ${domain}

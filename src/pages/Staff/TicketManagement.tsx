@@ -40,6 +40,10 @@ const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> =
     CANCELLED: "error",
   };
 
+const ACTIVE_STATUSES = ["CREATED", "APPROVED", "IN_PROGRESS", "WAITING_FOR_VERIFICATION", "VERIFIED"] as const;
+const COMPLETED_STATUSES = ["RESOLVED", "DONE"] as const;
+const CLOSED_STATUSES = ["REJECTED", "CANCELLED"] as const;
+
 const PAGE_SIZE = 10;
 
 /* =======================
@@ -180,14 +184,21 @@ export default function SupportTicketPage() {
   /* Stats */
   const totalTickets = tickets.length;
   const activeTickets = tickets.filter((t) =>
-    ["CREATED", "APPROVED", "IN_PROGRESS"].includes(t.status),
+    ACTIVE_STATUSES.includes(t.status as any),
   ).length;
   const resolvedTickets = tickets.filter((t) =>
-    ["RESOLVED", "DONE"].includes(t.status),
+    COMPLETED_STATUSES.includes(t.status as any),
   ).length;
-  const closedTickets = tickets.filter((t) =>
-    ["REJECTED", "CANCELLED"].includes(t.status),
+  const closedCount = tickets.filter((t) =>
+    CLOSED_STATUSES.includes(t.status as any),
   ).length;
+
+  let allowedTypes: string[] | undefined = undefined;
+  if (user?.role === "CUSTOMER" && !user?.department) {
+    allowedTypes = ["TYPE2"];
+  } else if (isManager) {
+    allowedTypes = ["TYPE2"];
+  }
 
   return (
     <div>
@@ -195,7 +206,7 @@ export default function SupportTicketPage() {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onSuccess={handleSuccess}
-        allowedTypes={isManager ? ["TYPE2"] : undefined}
+        allowedTypes={allowedTypes}
       />
       <ReviewTicketModal
         isOpen={!!reviewTicketId}
@@ -226,14 +237,14 @@ export default function SupportTicketPage() {
           <h3 className="text-2xl font-bold text-brand-500">
             {activeTickets.toLocaleString()}
           </h3>
-          <div className="mt-1 flex flex-wrap gap-1">
-            {(["CREATED", "APPROVED", "IN_PROGRESS"] as const).map((s) => (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {ACTIVE_STATUSES.map((s) => (
               <span
                 key={s}
                 className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
               >
-                {s.replace("_", " ")}
-                <span className="ml-1 font-bold">
+                {s.replace(/_/g, " ")}
+                <span className="ml-1.5 font-bold opacity-80 border-l border-brand-200 dark:border-brand-800 pl-1.5">
                   {tickets.filter((t) => t.status === s).length}
                 </span>
               </span>
@@ -245,14 +256,14 @@ export default function SupportTicketPage() {
           <h3 className="text-2xl font-bold text-success-500">
             {resolvedTickets.toLocaleString()}
           </h3>
-          <div className="mt-1 flex flex-wrap gap-1">
-            {(["RESOLVED", "DONE"] as const).map((s) => (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {COMPLETED_STATUSES.map((s) => (
               <span
                 key={s}
                 className="inline-flex items-center rounded-full bg-success-50 px-2 py-0.5 text-xs font-medium text-success-600 dark:bg-success-500/10 dark:text-success-400"
               >
                 {s}
-                <span className="ml-1 font-bold">
+                <span className="ml-1.5 font-bold opacity-80 border-l border-success-200 dark:border-success-800 pl-1.5">
                   {tickets.filter((t) => t.status === s).length}
                 </span>
               </span>
@@ -262,16 +273,16 @@ export default function SupportTicketPage() {
 
         <ComponentCard title="Closed">
           <h3 className="text-2xl font-bold text-error-500">
-            {closedTickets.toLocaleString()}
+            {closedCount.toLocaleString()}
           </h3>
-          <div className="mt-1 flex flex-wrap gap-1">
-            {(["REJECTED", "CANCELLED"] as const).map((s) => (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {CLOSED_STATUSES.map((s) => (
               <span
                 key={s}
                 className="inline-flex items-center rounded-full bg-error-50 px-2 py-0.5 text-xs font-medium text-error-600 dark:bg-error-500/10 dark:text-error-400"
               >
                 {s}
-                <span className="ml-1 font-bold">
+                <span className="ml-1.5 font-bold opacity-80 border-l border-error-200 dark:border-error-800 pl-1.5">
                   {tickets.filter((t) => t.status === s).length}
                 </span>
               </span>
@@ -404,7 +415,19 @@ export default function SupportTicketPage() {
               size="md"
               variant="primary"
               startIcon={<PlusIcon className="size-5 text-white" />}
-              onClick={() => setIsOpen(true)}
+              onClick={() => {
+                const unresolvedOwnTickets = tickets.filter(
+                  (t) =>
+                    t.requester?.user_id === user?.user_id &&
+                    !["DONE", "REJECTED", "CANCELLED"].includes(t.status)
+                ).length;
+                
+                if (unresolvedOwnTickets >= 3) {
+                  toast.error("You have 3 or more active tickets. Please mark resolved tickets as DONE or wait for processing to create new ones.");
+                  return;
+                }
+                setIsOpen(true);
+              }}
             >
               Create Ticket
             </Button>

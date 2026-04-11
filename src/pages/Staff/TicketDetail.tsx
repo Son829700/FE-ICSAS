@@ -16,6 +16,7 @@ import {
 import Badge from "../../components/ui/badge/Badge";
 import PageMeta from "../../components/common/PageMeta";
 import toast from "react-hot-toast";
+import { useAuth } from "../../hooks/useAuth";
 
 /* =======================
    TYPES
@@ -226,6 +227,7 @@ function isTerminalStatus(status: string): status is TerminalStatus {
 export default function TicketDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
@@ -251,6 +253,13 @@ export default function TicketDetail() {
     try {
       setConfirming(true);
       await API.post(`/tickets/${ticket.ticket_id}/status/DONE`);
+      
+      if (ticket.type === "TYPE2") {
+        toast.success("Profile updated! Please login again to apply changes.");
+        await logout();
+        return;
+      }
+      
       const res = await API.get(`/tickets/${ticket.ticket_id}`);
       setTicket(res.data.data);
       toast.success("Thank you for confirming!");
@@ -305,6 +314,34 @@ export default function TicketDetail() {
           <ArrowLeft className="size-4" />
           Back to Tickets
         </button>
+
+        {/* ACTION: Confirm DONE khi RESOLVED */}
+        {ticket.status === "RESOLVED" && (
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-900/10">
+            <h2 className="mb-2 text-base font-semibold text-blue-700 dark:text-blue-400">
+              ⏳ Action Required: Confirm Completion
+            </h2>
+            <p className="mb-4 text-sm text-blue-600 dark:text-blue-300">
+              {ticket.type === "TYPE2"
+                ? "Your account has been updated. Please verify and confirm to log in again with new permissions."
+                : ticket.type === "TYPE3"
+                  ? "The dashboard has been completed. Please verify and confirm."
+                  : "Your request has been resolved. Please verify and confirm completion."}
+            </p>
+            <button
+              onClick={handleConfirmDone}
+              disabled={confirming}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-success-500 py-2.5 text-sm font-medium text-white hover:bg-success-600 disabled:opacity-50 transition"
+            >
+              {confirming ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <CheckCircle className="size-4" />
+              )}
+              {confirming ? "Confirming..." : "Confirm & Mark as Done"}
+            </button>
+          </div>
+        )}
 
         {/* TIMELINE */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
@@ -545,34 +582,6 @@ export default function TicketDetail() {
             </li>
           </ul>
         </div>
-
-        {/* ACTION: Confirm DONE khi RESOLVED */}
-        {ticket.status === "RESOLVED" && (
-          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-900/10">
-            <h2 className="mb-2 text-base font-semibold text-blue-700 dark:text-blue-400">
-              ⏳ Confirm Completion
-            </h2>
-            <p className="mb-4 text-sm text-blue-600 dark:text-blue-300">
-              {ticket.type === "TYPE2"
-                ? "Your account has been updated. Please verify and confirm."
-                : ticket.type === "TYPE3"
-                  ? "The dashboard has been completed. Please verify and confirm."
-                  : "Your request has been resolved. Please verify and confirm completion."}
-            </p>
-            <button
-              onClick={handleConfirmDone}
-              disabled={confirming}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-success-500 py-2.5 text-sm font-medium text-white hover:bg-success-600 disabled:opacity-50 transition"
-            >
-              {confirming ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <CheckCircle className="size-4" />
-              )}
-              {confirming ? "Confirming..." : "Confirm & Mark as Done"}
-            </button>
-          </div>
-        )}
       </div>
     </>
   );
