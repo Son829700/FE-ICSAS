@@ -212,7 +212,7 @@ function TicketDetailModal({
     }
   };
 
-  const isTerminal = ["DONE", "VERIFIED", "REJECTED", "CANCELLED"].includes(
+  const isTerminal = ["DONE", "REJECTED", "CANCELLED"].includes(
     currentTicket.status,
   );
   const handleResolveAfterVerified = async () => {
