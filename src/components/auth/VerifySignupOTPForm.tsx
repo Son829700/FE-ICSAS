@@ -83,7 +83,7 @@ export default function VerifySignupOTPForm({ formData, onBack }: Props) {
           otp: otp.join(""),
         },
       });
-      
+
       // 2. If OK, Register actually
       await API.post("/users/custom", {
         user_name: formData.user_name.trim(),
@@ -95,6 +95,7 @@ export default function VerifySignupOTPForm({ formData, onBack }: Props) {
       navigate("/signin");
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? "Invalid OTP or Registration failed.";
+      toast.error(msg);
       setOtpError(msg);
     } finally {
       setLoading(false);
@@ -136,13 +137,12 @@ export default function VerifySignupOTPForm({ formData, onBack }: Props) {
                     value={digit}
                     onChange={(e) => handleOtpChange(index, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(index, e)}
-                    className={`h-11 w-full rounded-lg border text-center text-xl font-semibold text-gray-800 shadow-theme-xs focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 transition ${
-                      otpError
+                    className={`h-11 w-full rounded-lg border text-center text-xl font-semibold text-gray-800 shadow-theme-xs focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 transition ${otpError
                         ? "border-error-300 focus:border-error-300 focus:ring-error-500/10 dark:border-error-700"
                         : digit
                           ? "border-brand-400 focus:border-brand-300 focus:ring-brand-500/10 dark:border-brand-600"
                           : "border-gray-300 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:focus:border-brand-800"
-                    }`}
+                      }`}
                   />
                 ))}
               </div>

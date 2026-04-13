@@ -44,11 +44,7 @@ export function buildActivationEmailBody(params: {
   email: string;
   shopName?: string;
 }): string {
-  const {
-    username,
-    email,
-    shopName,
-  } = params;
+  const { username, email, shopName } = params;
 
   const domain = "https://icsas.systems/";
 
@@ -60,225 +56,219 @@ export function buildActivationEmailBody(params: {
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Account Activated</title>
 </head>
-<body style="${BASE_STYLE}">
-  <div style="${CARD_STYLE}">
 
-    <!-- Header -->
-    <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 36px 40px 28px; text-align: center;">
-      <div style="
-        width: 64px; height: 64px;
-        background: rgba(255,255,255,0.15);
-        border-radius: 50%;
-        margin: 0 auto 16px;
-        line-height: 64px;
-        text-align: center;
-        font-size: 30px;
-      ">🎉</div>
-      <h1 style="margin:0; color:#ffffff; font-size:22px; font-weight:700;">
-        Account Activated Successfully
-      </h1>
-      <p style="margin:8px 0 0; color:rgba(255,255,255,0.75); font-size:13px;">
-        ICSAS Analytics Portal
-      </p>
+<body style="
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:#fff7ed;
+  margin:0;padding:0;
+">
+
+<div style="
+  max-width:520px;
+  margin:40px auto;
+  background:#ffffff;
+  border-radius:16px;
+  overflow:hidden;
+  box-shadow:0 6px 30px rgba(0,0,0,0.08);
+">
+
+  <!-- HEADER -->
+  <div style="
+    background:linear-gradient(135deg,#ff7a1a 0%,#d65a00 100%);
+    padding:36px 40px 30px;
+    text-align:center;
+  ">
+    <div style="
+      width:64px;height:64px;
+      margin:0 auto 14px;
+      border-radius:50%;
+      background:rgba(255,255,255,0.2);
+      line-height:64px;
+      font-size:28px;
+    ">🚀</div>
+
+    <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">
+      Your Account is Ready
+    </h1>
+
+    <p style="margin:8px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">
+      ICSAS Analytics Portal
+    </p>
+  </div>
+
+  <!-- BODY -->
+  <div style="padding:36px 40px;">
+
+    <p style="margin:0 0 6px;font-size:16px;font-weight:600;color:#1e293b;">
+      Hi ${username} 👋
+    </p>
+
+    <p style="margin:0 0 24px;font-size:14px;color:#64748b;line-height:1.6;">
+      Your account has been successfully activated.  
+      You can now access the system — but before using dashboards,
+      you need to request <strong>Department & Role assignment</strong>.
+    </p>
+
+    <!-- CTA -->
+    <div style="text-align:center;margin-bottom:28px;">
+      <a href="${domain}" style="
+        display:inline-block;
+        background:#ff7a1a;
+        color:#fff;
+        padding:12px 22px;
+        border-radius:10px;
+        font-size:14px;
+        font-weight:600;
+        text-decoration:none;
+        box-shadow:0 4px 12px rgba(255,122,26,0.3);
+      ">
+        Go to ICSAS Portal
+      </a>
     </div>
 
-    <!-- Body -->
-    <div style="${BODY_STYLE}">
-      <p style="margin:0 0 8px; font-size:16px; font-weight:600; color:#1e293b;">
-        Hi ${username} 👋
-      </p>
-
-      <p style="margin:0 0 20px; font-size:14px; color:#64748b; line-height:1.6;">
-        Your account has been successfully activated by our administrators. You can now log into the portal.
-      </p>
-
-      <!-- IMPORTANT NEXT STEP VISUAL BLOCK -->
-      <div style="
-        background: #fff7ed;
-        border: 1px solid #fed7aa;
-        border-radius: 12px;
-        padding: 24px;
-        margin-top: 10px;
-        margin-bottom: 24px;
-        box-shadow: 0 4px 10px rgba(234, 88, 12, 0.05);
+    <!-- STEP BOX -->
+    <div style="
+      background:#fff7ed;
+      border:1px solid #fed7aa;
+      border-radius:14px;
+      padding:22px;
+      margin-bottom:24px;
+    ">
+      <p style="
+        margin:0 0 16px;
+        font-size:13px;
+        font-weight:700;
+        color:#c2410c;
+        text-transform:uppercase;
+        letter-spacing:1px;
       ">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <div style="
-            display: inline-block;
-            background: #ffedd5;
-            color: #ea580c;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            border: 1px solid #fdba74;
-          ">
-            🚀 Action Required
-          </div>
-          <h2 style="margin: 12px 0 0; color: #9a3412; font-size: 18px;">
-            Set up your Role & Department
-          </h2>
-          <p style="margin: 6px 0 0; color: #c2410c; font-size: 13px;">
-            Complete these steps to unlock your dashboards.
-          </p>
-        </div>
+        Required Setup
+      </p>
 
-        <!-- Step 1 -->
-        <div style="display: flex; align-items: flex-start; margin-bottom: 16px;">
-          <div style="
-            flex-shrink: 0;
-            width: 32px;
-            height: 32px;
-            background: #ea580c;
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 14px;
-            margin-right: 14px;
-            box-shadow: 0 2px 5px rgba(234, 88, 12, 0.3);
-          ">1</div>
-          <div style="padding-top: 6px;">
-            <p style="margin: 0; font-size: 14px; color: #1e293b; font-weight: 600;">
-              Log in to the Portal
-            </p>
-            <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">
-              Use the link below to access your account.
-            </p>
-          </div>
-        </div>
+      <ol style="padding-left:18px;margin:0;color:#1e293b;font-size:14px;">
+        <li style="margin-bottom:10px;">
+          Log in to ICSAS Portal
+        </li>
+        <li style="margin-bottom:10px;">
+          Go to <strong>Support Ticket</strong>
+        </li>
+        <li>
+          Click <strong>Create Ticket</strong> → Select  
+          <strong>Type 2: User Account Management</strong>
+        </li>
+      </ol>
+    </div>
 
-        <!-- Step 2 -->
-        <div style="display: flex; align-items: flex-start; margin-bottom: 16px;">
-          <div style="
-            flex-shrink: 0;
-            width: 32px;
-            height: 32px;
-            background: #ea580c;
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 14px;
-            margin-right: 14px;
-            box-shadow: 0 2px 5px rgba(234, 88, 12, 0.3);
-          ">2</div>
-          <div style="padding-top: 6px;">
-            <p style="margin: 0; font-size: 14px; color: #1e293b; font-weight: 600;">
-              Navigate to "Support Ticket"
-            </p>
-            <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">
-              Go to the Support Ticket page and click <b>Create Ticket</b>.
-            </p>
-          </div>
-        </div>
+    <!-- DESCRIPTION TEMPLATE -->
+    <div style="
+      background:#fff;
+      border:1px dashed #fdba74;
+      border-radius:12px;
+      padding:18px;
+      margin-bottom:24px;
+    ">
+      <p style="
+        margin:0 0 10px;
+        font-size:13px;
+        font-weight:600;
+        color:#9a3412;
+      ">
+        📌 Suggested Ticket Description (copy & paste)
+      </p>
 
-        <!-- Step 3 -->
-        <div style="display: flex; align-items: flex-start;">
-          <div style="
-            flex-shrink: 0;
-            width: 32px;
-            height: 32px;
-            background: #ea580c;
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 14px;
-            margin-right: 14px;
-            box-shadow: 0 2px 5px rgba(234, 88, 12, 0.3);
-          ">3</div>
-          <div style="padding-top: 6px;">
-            <p style="margin: 0; font-size: 14px; color: #1e293b; font-weight: 600;">
-              Select "User Account Management"
-            </p>
-            <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">
-              Choose Ticket Type 2 and submit your request to be assigned a specific Department and Role.
-            </p>
-          </div>
-        </div>
+      <div style="
+        background:#fff7ed;
+        border-radius:8px;
+        padding:12px;
+        font-size:13px;
+        color:#7c2d12;
+        line-height:1.6;
+        font-family:monospace;
+        white-space:pre-line;
+      ">
+Hello ICSAS Team,
+
+I would like to request access configuration for my account.
+
+Username: ${username}
+Email: ${email}
+
+Requested Department: [e.g. Sales / Marketing / Finance]
+Requested Role: [e.g. Viewer / Analyst / Manager]
+
+Purpose:
+I need access to dashboards to support my daily work and monitor performance metrics.
+
+Thank you.
       </div>
+    </div>
 
-      ${shopName
+    ${shopName
       ? `
-      <div style="
-        background: #f0fdf4;
-        border: 1px solid #bbf7d0;
-        border-radius: 10px;
-        padding: 14px;
-        margin-bottom: 20px;
-      ">
-        <p style="margin:0; font-size:13px; color:#15803d;">
-          <strong>Assigned Shop:</strong> ${shopName}
-        </p>
-      </div>
-      `
+    <div style="
+      background:#f0fdf4;
+      border:1px solid #bbf7d0;
+      border-radius:10px;
+      padding:14px;
+      margin-bottom:20px;
+    ">
+      <p style="margin:0;font-size:13px;color:#15803d;">
+        <strong>Assigned Shop:</strong> ${shopName}
+      </p>
+    </div>`
       : ""
     }
 
-      <!-- Account Info -->
-      <div style="
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 14px;
-        margin-bottom: 20px;
-      ">
-        <p style="margin:0 0 8px; font-size:12px; font-weight:600; color:#64748b;">
-          ACCOUNT INFORMATION
-        </p>
-        <p style="margin:0; font-size:13px; color:#1e293b;">
-          <strong>Username:</strong> ${username}
-        </p>
-        <p style="margin:4px 0 0; font-size:13px; color:#1e293b;">
-          <strong>Email:</strong> ${email}
-        </p>
-      </div>
-
-      <!-- Domain Link -->
-      <div style="
-        text-align:center;
-        background:#eef2ff;
-        border:1px solid #c7d2fe;
-        border-radius:10px;
-        padding:16px;
-      ">
-        <p style="margin:0 0 8px; font-size:13px; color:#4338ca;">
-          Access the system here:
-        </p>
-        <a href="${domain}" style="
-          font-size:14px;
-          font-weight:600;
-          color:#ea580c;
-          text-decoration:none;
-        ">
-          ${domain}
-        </a>
-      </div>
-
-    </div>
-
-    <!-- Footer -->
-    <div style="${FOOTER_STYLE}">
-      <p style="margin:0 0 4px;">
-        © ${new Date().getFullYear()} ICSAS
+    <!-- ACCOUNT INFO -->
+    <div style="
+      background:#f8fafc;
+      border:1px solid #e2e8f0;
+      border-radius:10px;
+      padding:14px;
+      margin-bottom:20px;
+    ">
+      <p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#64748b;">
+        ACCOUNT INFO
       </p>
-      <p style="margin:0;">
-        This is an automated email. Do not reply.
+      <p style="margin:0;font-size:13px;color:#1e293b;">
+        <strong>Username:</strong> ${username}
+      </p>
+      <p style="margin:4px 0 0;font-size:13px;color:#1e293b;">
+        <strong>Email:</strong> ${email}
       </p>
     </div>
+
+    <p style="
+      margin:0;
+      font-size:12px;
+      color:#94a3b8;
+      text-align:center;
+    ">
+      Once your request is approved, you will gain full dashboard access.
+    </p>
 
   </div>
+
+  <!-- FOOTER -->
+  <div style="
+    background:#fff7ed;
+    border-top:1px solid #fed7aa;
+    padding:20px;
+    text-align:center;
+    font-size:12px;
+    color:#9a3412;
+  ">
+    © ${new Date().getFullYear()} ICSAS  
+    <br/>
+    <span style="font-size:11px;color:#fdba74;">
+      Automated email — do not reply
+    </span>
+  </div>
+
+</div>
 </body>
-</html>`;
+</html>
+`;
 }
 
 /* =======================

@@ -196,11 +196,10 @@ export default function ForgotPasswordForm() {
                     onChange={(e) => { setEmail(e.target.value); setEmailError(""); }}
                     placeholder="Enter your email"
                     required
-                    className={`h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 bg-transparent text-gray-800 transition ${
-                      emailError
+                    className={`h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 bg-transparent text-gray-800 transition ${emailError
                         ? "border-error-400 focus:border-error-400 focus:ring-error-500/20"
                         : "border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800"
-                    }`}
+                      }`}
                   />
                   {emailError && <p className="mt-1.5 text-xs text-error-500">{emailError}</p>}
                 </div>
@@ -229,9 +228,9 @@ export default function ForgotPasswordForm() {
 
             <div className="mt-5">
               <p className="text-sm text-center text-gray-700 dark:text-gray-400 sm:text-start">
-                Remember your password?{" "}
+                Wait, I remember my password...{" "}
                 <Link to="/signin" className="text-brand-500 hover:text-brand-600 dark:text-brand-400">
-                  Sign in
+                  Click here
                 </Link>
               </p>
             </div>
@@ -242,7 +241,7 @@ export default function ForgotPasswordForm() {
         {step === "reset" && (
           <>
             <div className="mb-5 sm:mb-8">
-            
+
               <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
                 Reset Password
               </h1>
@@ -271,13 +270,12 @@ export default function ForgotPasswordForm() {
                         value={digit}
                         onChange={(e) => handleOtpChange(i, e.target.value)}
                         onKeyDown={(e) => handleKeyDown(i, e)}
-                        className={`h-11 w-full rounded-lg border text-center text-xl font-semibold text-gray-800 shadow-theme-xs focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 transition ${
-                          otpError
+                        className={`h-11 w-full rounded-lg border text-center text-xl font-semibold text-gray-800 shadow-theme-xs focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 transition ${otpError
                             ? "border-error-300 focus:border-error-300 focus:ring-error-500/10 dark:border-error-700"
                             : digit
                               ? "border-brand-400 focus:border-brand-300 focus:ring-brand-500/10 dark:border-brand-600"
                               : "border-gray-300 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:focus:border-brand-800"
-                        }`}
+                          }`}
                       />
                     ))}
                   </div>
@@ -309,11 +307,10 @@ export default function ForgotPasswordForm() {
                       value={newPassword}
                       onChange={(e) => { setNewPassword(e.target.value); setPasswordError(""); }}
                       placeholder="Min. 8 characters"
-                      className={`h-11 w-full rounded-lg border appearance-none px-4 py-2.5 pr-11 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 bg-transparent text-gray-800 transition ${
-                        passwordError
+                      className={`h-11 w-full rounded-lg border appearance-none px-4 py-2.5 pr-11 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 bg-transparent text-gray-800 transition ${passwordError
                           ? "border-error-400 focus:border-error-400 focus:ring-error-500/20"
                           : "border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800"
-                      }`}
+                        }`}
                     />
                     <span
                       onClick={() => setShowPw(!showPw)}
@@ -337,11 +334,10 @@ export default function ForgotPasswordForm() {
                       value={confirmPassword}
                       onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError(""); }}
                       placeholder="Re-enter new password"
-                      className={`h-11 w-full rounded-lg border appearance-none px-4 py-2.5 pr-11 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 bg-transparent text-gray-800 transition ${
-                        passwordError
+                      className={`h-11 w-full rounded-lg border appearance-none px-4 py-2.5 pr-11 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 bg-transparent text-gray-800 transition ${passwordError
                           ? "border-error-400 focus:border-error-400 focus:ring-error-500/20"
                           : "border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800"
-                      }`}
+                        }`}
                     />
                     <span
                       onClick={() => setShowConfirm(!showConfirm)}
