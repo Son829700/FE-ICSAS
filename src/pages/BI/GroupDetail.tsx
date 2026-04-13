@@ -122,25 +122,38 @@ function AddMemberModal({
   const handleAdd = async () => {
     if (!selectedIds.length) return;
     setAdding(true);
-    try {
-      await Promise.all(
-        selectedIds.map(async (userId) => {
+
+    let successCount = 0;
+    const failedUsers: string[] = [];
+
+    for (const userId of selectedIds) {
+      try {
+        await API.post(`/groups/add-member/${groupId}/user/${userId}`);
+        successCount++;
+      } catch (err: any) {
+        if (err.response?.status === 400) {
           try {
-            await API.post(`/groups/add-member/${groupId}/user/${userId}`);
-          } catch (err: any) {
-            if (err.response?.status === 400)
-              await API.put(`/groups/restore-member/${groupId}/user/${userId}`);
+            await API.put(`/groups/restore-member/${groupId}/user/${userId}`);
+            successCount++;
+          } catch {
+            failedUsers.push(userId);
           }
-        }),
-      );
-      toast.success(`Added ${selectedIds.length} member(s) successfully!`);
-      onAdded();
-      handleClose();
-    } catch {
-      toast.error("Failed to add members.");
-    } finally {
-      setAdding(false);
+        } else {
+          failedUsers.push(userId);
+        }
+      }
     }
+
+    if (successCount > 0) {
+      toast.success(`Added ${successCount} member(s) successfully!`);
+      onAdded();
+    }
+    if (failedUsers.length > 0) {
+      toast.error(`Failed to add ${failedUsers.length} member(s).`);
+    }
+
+    setAdding(false);
+    handleClose();
   };
 
   const handleClose = () => {
@@ -318,29 +331,42 @@ function AddDashboardModal({
   const handleAdd = async () => {
     if (!selectedIds.length) return;
     setAdding(true);
-    try {
-      await Promise.all(
-        selectedIds.map(async (dashboardId) => {
+
+    let successCount = 0;
+    const failedDashboards: string[] = [];
+
+    for (const dashboardId of selectedIds) {
+      try {
+        await API.post(
+          `/dashboard/grant-access/group/${groupId}/dashboard/${dashboardId}`,
+        );
+        successCount++;
+      } catch (err: any) {
+        if (err.response?.status === 400) {
           try {
-            await API.post(
-              `/dashboard/grant-access/group/${groupId}/dashboard/${dashboardId}`,
+            await API.put(
+              `/dashboard/restore-access/group/${groupId}/dashboard/${dashboardId}`,
             );
-          } catch (err: any) {
-            if (err.response?.status === 400)
-              await API.put(
-                `/dashboard/restore-access/group/${groupId}/dashboard/${dashboardId}`,
-              );
+            successCount++;
+          } catch {
+            failedDashboards.push(dashboardId);
           }
-        }),
-      );
-      toast.success(`Granted access to ${selectedIds.length} dashboard(s)!`);
-      onAdded();
-      handleClose();
-    } catch {
-      toast.error("Failed to grant access.");
-    } finally {
-      setAdding(false);
+        } else {
+          failedDashboards.push(dashboardId);
+        }
+      }
     }
+
+    if (successCount > 0) {
+      toast.success(`Granted access to ${successCount} dashboard(s)!`);
+      onAdded();
+    }
+    if (failedDashboards.length > 0) {
+      toast.error(`Failed to grant ${failedDashboards.length} dashboard(s).`);
+    }
+
+    setAdding(false);
+    handleClose();
   };
 
   const handleClose = () => {
@@ -678,22 +704,20 @@ export default function GroupDetail() {
                 </h1>
                 <div className="mt-0.5 flex items-center gap-2">
                   <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      group.groupType === "TRADITIONAL"
-                        ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
-                        : "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400"
-                    }`}
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${group.groupType === "TRADITIONAL"
+                      ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
+                      : "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400"
+                      }`}
                   >
                     {group.groupType === "TRADITIONAL"
                       ? "Traditional"
                       : "Adhoc"}
                   </span>
                   <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      group.status === "ACTIVE"
-                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                        : "bg-red-100 text-red-600"
-                    }`}
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${group.status === "ACTIVE"
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                      : "bg-red-100 text-red-600"
+                      }`}
                   >
                     {group.status}
                   </span>
