@@ -150,7 +150,7 @@ export function buildActivationEmailBody(params: {
           Log in to ICSAS Portal
         </li>
         <li style="margin-bottom:10px;">
-          Go to <strong>Support Ticket</strong>
+          Go to <strong>Ticket Management</strong>
         </li>
         <li>
           Click <strong>Create Ticket</strong> → Select  
@@ -173,7 +173,7 @@ export function buildActivationEmailBody(params: {
         font-weight:600;
         color:#9a3412;
       ">
-        📌 Suggested Ticket Description (copy & paste)
+        Suggested Ticket Description (copy & paste)
       </p>
 
       <div style="
@@ -193,8 +193,7 @@ I would like to request access configuration for my account.
 Username: ${username}
 Email: ${email}
 
-Requested Department: [e.g. Sales / Marketing / Finance]
-Requested Role: [e.g. Viewer / Analyst / Manager]
+Requested Shop Name: [e.g. Shop A / Shop B / Shop C]
 
 Purpose:
 I need access to dashboards to support my daily work and monitor performance metrics.

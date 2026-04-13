@@ -57,7 +57,7 @@ export default function VerifySignupOTPForm({ formData, onBack }: Props) {
   const handleResend = async () => {
     if (!canResend) return;
     try {
-      await API.post("/users/send-otp", null, { params: { email: formData.email } });
+      await API.post("/users/generate-registration-otp", null, { params: { email: formData.email } });
       setOtp(Array(OTP_LENGTH).fill(""));
       setCountdown(60); setCanResend(false); setOtpError("");
       inputRefs.current[0]?.focus();
@@ -77,7 +77,7 @@ export default function VerifySignupOTPForm({ formData, onBack }: Props) {
     setLoading(true);
     try {
       // 1. Verify OTP first
-      await API.post("/users/verify-otp", null, {
+      await API.post("/users/verify-registration-otp", null, {
         params: {
           email: formData.email,
           otp: otp.join(""),
