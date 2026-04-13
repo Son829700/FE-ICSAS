@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import API from "../../api";
-import { Filter, X, Loader2, Send } from "lucide-react";
+import { X, Loader2, Send, Search } from "lucide-react";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 import Badge from "../../components/ui/badge/Badge";
@@ -27,8 +27,10 @@ const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> =
   {
     DONE: "success",
     RESOLVED: "success",
+    VERIFIED: "success",
     APPROVED: "info",
     IN_PROGRESS: "warning",
+    WAITING_FOR_VERIFICATION: "warning",
     REJECTED: "error",
     CANCELLED: "error",
   };
@@ -66,6 +68,8 @@ interface Ticket {
     | "APPROVED"
     | "IN_PROGRESS"
     | "RESOLVED"
+    | "WAITING_FOR_VERIFICATION"
+    | "VERIFIED"
     | "REJECTED"
     | "CANCELLED"
     | "DONE";
@@ -349,25 +353,10 @@ function TicketDetailModal({
 export default function TicketListBI() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [filter, setFilter] = useState<FilterValue>({ type: "", status: "" });
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [biStaffs, setBiStaffs] = useState<User[]>([]);
-
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
-        setFilterOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   const fetchTickets = async () => {
     try {
@@ -379,18 +368,9 @@ export default function TicketListBI() {
       const type1: Ticket[] = type1Res.data.data ?? [];
       const type3: Ticket[] = type3Res.data.data ?? [];
 
-      // Lấy tất cả ticket đã qua APPROVED (bao gồm cả đã assign, in progress, resolved, done)
+      // Ẩn các ticket vừa tạo (CREATED), chỉ lấy các ticket có status khác CREATED
       const merged = [...type1, ...type3]
-        .filter((t) =>
-          [
-            "APPROVED",
-            "IN_PROGRESS",
-            "RESOLVED",
-            "DONE",
-            "REJECTED",
-            "CANCELLED",
-          ].includes(t.status),
-        )
+        .filter((t) => t.status !== "CREATED")
         .sort(
           (a, b) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
@@ -425,7 +405,12 @@ export default function TicketListBI() {
   const filteredTickets = tickets.filter((t) => {
     const typeMatch = !filter.type || t.type === filter.type;
     const statusMatch = !filter.status || t.status === filter.status;
-    return typeMatch && statusMatch;
+    const q = search.toLowerCase();
+    const searchMatch =
+      !q ||
+      t.requester?.username?.toLowerCase().includes(q) ||
+      t.requester?.email?.toLowerCase().includes(q);
+    return typeMatch && statusMatch && searchMatch;
   });
 
   const totalPages = Math.max(1, Math.ceil(filteredTickets.length / PAGE_SIZE));
@@ -496,92 +481,106 @@ export default function TicketListBI() {
       {/* TABLE CARD */}
       <div className="rounded-2xl border border-gray-200 bg-white pt-4 dark:border-white/[0.05] dark:bg-white/[0.03]">
         {/* HEADER */}
-        <div className="mb-4 flex flex-col gap-3 px-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-              Support Tickets
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Your most recent support tickets list
-            </p>
+        <div className="mb-4 flex flex-col gap-4 px-5 sm:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+                Support Tickets
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Your most recent support tickets list
+              </p>
+            </div>
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                placeholder="Search requester, email..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                className="h-10 w-full sm:w-[260px] rounded-lg border border-gray-300 bg-white pl-9 pr-4 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              />
+            </div>
           </div>
 
-          <div className="flex gap-3">
-            <div className="relative" ref={dropdownRef}>
+          {/* CHIPS */}
+          <div className="flex flex-col gap-3 border-b border-gray-200 pb-4 dark:border-white/[0.05]">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 mr-1">Type:</span>
               <button
-                onClick={() => setFilterOpen(!filterOpen)}
-                className="flex h-11 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]"
+                onClick={() => handleFilterChange({ type: "" })}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${!filter.type ? "bg-brand-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"}`}
               >
-                <Filter size={18} />
-                Filter
-                {(filter.type || filter.status) && (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-xs text-white">
-                    {[filter.type, filter.status].filter(Boolean).length}
-                  </span>
-                )}
+                All
               </button>
-              {filterOpen && (
-                <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-                  <div className="mb-4">
-                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                      Ticket Type
-                    </label>
-                    <select
-                      value={filter.type}
-                      onChange={(e) =>
-                        handleFilterChange({ type: e.target.value })
-                      }
-                      className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                    >
-                      <option value="">All</option>
-                      <option value="TYPE1">Dashboard Access Request</option>
-                      <option value="TYPE3">
-                        Dashboard Development Request
-                      </option>
-                      {/* TYPE2 bỏ — BI không xử lý */}
-                    </select>
-                  </div>
+              <button
+                onClick={() => handleFilterChange({ type: "TYPE1" })}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${filter.type === "TYPE1" ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"}`}
+              >
+                Access (Type 1)
+              </button>
+              <button
+                onClick={() => handleFilterChange({ type: "TYPE3" })}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${filter.type === "TYPE3" ? "bg-purple-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"}`}
+              >
+                Development (Type 3)
+              </button>
+            </div>
 
-                  <div className="mb-4">
-                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                      Status
-                    </label>
-                    <select
-                      value={filter.status}
-                      onChange={(e) =>
-                        handleFilterChange({ status: e.target.value })
-                      }
-                      className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                    >
-                      <option value="">All</option>
-                      <option value="APPROVED">Approved</option>
-                      <option value="IN_PROGRESS">In Progress</option>
-                      <option value="RESOLVED">Resolved</option>
-                      <option value="DONE">Done</option>
-                      <option value="REJECTED">Rejected</option>
-                      <option value="CANCELLED">Cancelled</option>
-                    </select>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        handleFilterChange({ type: "", status: "" });
-                        setFilterOpen(false);
-                      }}
-                      className="h-10 flex-1 rounded-lg border border-gray-300 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-white/[0.03] transition"
-                    >
-                      Reset
-                    </button>
-                    <button
-                      onClick={() => setFilterOpen(false)}
-                      className="h-10 flex-1 rounded-lg bg-brand-500 text-sm font-medium text-white hover:bg-brand-600 transition"
-                    >
-                      Apply
-                    </button>
-                  </div>
-                </div>
-              )}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 mr-1">Status:</span>
+              <button
+                onClick={() => handleFilterChange({ status: "" })}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${!filter.status ? "bg-brand-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"}`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => handleFilterChange({ status: "APPROVED" })}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${filter.status === "APPROVED" ? "bg-info-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"}`}
+              >
+                Approved
+              </button>
+              <button
+                onClick={() => handleFilterChange({ status: "IN_PROGRESS" })}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${filter.status === "IN_PROGRESS" ? "bg-warning-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"}`}
+              >
+                In Progress
+              </button>
+              <button
+                onClick={() => handleFilterChange({ status: "RESOLVED" })}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${filter.status === "RESOLVED" ? "bg-success-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"}`}
+              >
+                Resolved
+              </button>
+              <button
+                onClick={() => handleFilterChange({ status: "WAITING_FOR_VERIFICATION" })}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${filter.status === "WAITING_FOR_VERIFICATION" ? "bg-warning-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"}`}
+              >
+                Waiting Verification
+              </button>
+              <button
+                onClick={() => handleFilterChange({ status: "VERIFIED" })}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${filter.status === "VERIFIED" ? "bg-success-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"}`}
+              >
+                Verified
+              </button>
+              <button
+                onClick={() => handleFilterChange({ status: "DONE" })}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${filter.status === "DONE" ? "bg-success-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"}`}
+              >
+                Done
+              </button>
+              <button
+                onClick={() => handleFilterChange({ status: "REJECTED" })}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${filter.status === "REJECTED" ? "bg-error-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"}`}
+              >
+                Rejected
+              </button>
             </div>
           </div>
         </div>
