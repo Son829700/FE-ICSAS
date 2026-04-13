@@ -42,11 +42,11 @@ export default function OAuth2RedirectHandler() {
     }
 
     try {
-      localStorage.setItem("token", token);
-      if (googleToken) localStorage.setItem("googleToken", googleToken);
+      sessionStorage.setItem("token", token);
+      if (googleToken) sessionStorage.setItem("googleToken", googleToken);
 
       const decoded = jwtDecode<JwtPayload>(token);
-      if (decoded?.sub) localStorage.setItem("username", decoded.sub);
+      if (decoded?.sub) sessionStorage.setItem("username", decoded.sub);
 
       fetchUser().then(async (user) => {
         if (!user) return;

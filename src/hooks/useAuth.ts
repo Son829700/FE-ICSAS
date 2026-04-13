@@ -63,7 +63,7 @@ export const useAuth = () => {
     try {
       const response = await API.post("/auth/token", { email, password });
       const token: string = response.data.data.token;
-      localStorage.setItem("token", token);
+      sessionStorage.setItem("token", token);
 
       const loginAccount = await fetchUser();
       if (!loginAccount) return null;
@@ -112,15 +112,15 @@ export const useAuth = () => {
 
   const logout = async (): Promise<void> => {
     try {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       if (token) {
         await API.post("/auth/logout", { token });
       }
     } catch (err) {
       console.error("Logout API failed:", err);
     } finally {
-      localStorage.removeItem("token");
-      localStorage.removeItem("isOAuth2Redirect");
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("isOAuth2Redirect");
       delete API.defaults.headers.common["Authorization"];
       setUser(null);
       setIsManager(false); // ← reset isManager khi logout
@@ -152,7 +152,7 @@ export const useAuth = () => {
 
   /* Auto fetch user khi có token */
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (!token) {
       setAuthLoading(false);
       return;
@@ -165,7 +165,7 @@ export const useAuth = () => {
         setUser(userData);
         await checkIsManager(userData.user_id);
       } catch (err) {
-        localStorage.removeItem("token");
+        sessionStorage.removeItem("token");
         console.error(err);
       } finally {
         setAuthLoading(false);

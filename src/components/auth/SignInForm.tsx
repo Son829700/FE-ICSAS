@@ -6,7 +6,6 @@ import { useAuthContext } from "../../context/AuthContext";
 import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
-import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import { Modal } from "../ui/modal";
 import { Building2, Loader2 } from "lucide-react";
@@ -39,7 +38,6 @@ export interface Department {
 export default function SignInForm() {
   const API_GOOGLE_LOGIN_URL = "/oauth2/authorization/google";
   const [showPassword, setShowPassword] = useState(false);
-  const [isChecked, setIsChecked] = useState(true);
   const { login, authLoading } = useAuthContext();
 
   const [email, setEmail] = useState("");
@@ -76,7 +74,7 @@ export default function SignInForm() {
       setCurrentUser(user);
 
       if (!user.department && user.role === "STAFF") {
-         setShowDepartmentModal(true);
+        setShowDepartmentModal(true);
       } else {
         navigate("/");
       }
@@ -191,13 +189,7 @@ export default function SignInForm() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Checkbox checked={isChecked} onChange={setIsChecked} />
-                    <span className="block font-normal text-gray-700 text-theme-sm dark:text-gray-400">
-                      Keep me logged in
-                    </span>
-                  </div>
+                <div className="flex items-center justify-end">
                   <Link
                     to="/reset-password"
                     className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
@@ -233,7 +225,7 @@ export default function SignInForm() {
       ============================================= */}
       <Modal
         isOpen={showDepartmentModal}
-        onClose={() => {}}
+        onClose={() => { }}
         showCloseButton={false}
         className="max-w-md p-6"
       >

@@ -22,7 +22,7 @@ export interface Department {
   status: string;
 }
 export default function UserMetaCard() {
-  const { user } = useAuthContext();
+  const { user, isManager } = useAuthContext();
   const initials = user?.username
     ? user.username.slice(0, 1).toUpperCase()
     : "U";
@@ -58,8 +58,8 @@ export default function UserMetaCard() {
                   {user.department?.department_name || "No Department"}
                 </p>
                 <div className="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {user.role}
+                <p className="text-sm font-medium text-brand-500 dark:text-brand-400">
+                  {isManager ? "Department Manager" : user.role}
                 </p>
               </div>
             </div>

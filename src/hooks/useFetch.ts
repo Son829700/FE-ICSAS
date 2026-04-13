@@ -27,7 +27,7 @@ const useFetch = <T = unknown>(defaultUrl: string) => {
       setError(null);
 
       try {
-        const token = localStorage.getItem("token");
+        const token = sessionStorage.getItem("token");
 
         const options: RequestInit = {
           method,

@@ -17,7 +17,7 @@ export interface Department {
   department_type: "INTERNAL" | "EXTERNAL";
 }
 export default function UserInfoCard() {
-  const { user } = useAuthContext();
+  const { user, isManager } = useAuthContext();
 
   if (!user) return null;
 
@@ -56,6 +56,15 @@ export default function UserInfoCard() {
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
                 {user.email}
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                Role
+              </p>
+              <p className="text-sm font-medium text-brand-500 dark:text-brand-400">
+                {isManager ? "Department Manager" : user.role}
               </p>
             </div>
 
