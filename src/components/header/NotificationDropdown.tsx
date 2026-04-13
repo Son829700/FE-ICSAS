@@ -171,8 +171,8 @@ export default function NotificationDropdown() {
                   <DropdownItem
                     onItemClick={() => handleMarkAsRead(id, isRead)}
                     className={`flex gap-3 rounded-lg border-b border-gray-100 p-3 px-4 py-3 dark:border-gray-800 dark:hover:bg-white/5 transition mb-1 ${!isRead
-                        ? "bg-brand-50/40 hover:bg-brand-50/80 dark:bg-brand-500/10"
-                        : "hover:bg-gray-100 bg-white dark:bg-gray-dark"
+                      ? "bg-brand-50/40 hover:bg-brand-50/80 dark:bg-brand-500/10"
+                      : "hover:bg-gray-100 bg-white dark:bg-gray-dark"
                       }`}
                   >
                     <span className="relative block w-10 flex-shrink-0 h-10 rounded-full z-1">

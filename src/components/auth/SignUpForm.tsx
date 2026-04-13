@@ -66,7 +66,7 @@ export default function SignUpForm() {
     setLoading(true);
     try {
       // 1. Send OTP instead of creating account directly
-      await API.post("/users/send-otp", null, {
+      await API.post("/users/generate-registration-otp", null, {
         params: { email: form.email.trim().toLowerCase() }
       });
       toast.success("OTP sent to your email!");
