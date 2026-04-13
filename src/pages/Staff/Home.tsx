@@ -4,7 +4,7 @@ import PageMeta from "../../components/common/PageMeta";
 import API from "../../api";
 import DashboardViewer from "../Dashboard/DashboardViewer";
 import { useAuthContext } from "../../context/AuthContext";
-import { useDashboardLogger } from "../../hooks/useDashboardLogger"; 
+import { useDashboardLogger } from "../../hooks/useDashboardLogger";
 
 interface Dashboard {
   dashboard_id: string;
@@ -73,7 +73,7 @@ export default function StaffHome() {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const res = await API.get(`/dashboard/${id}`);
+        const res = await API.get(`/dashboard/check-access/${id}`);
         setDashboard(res.data.data);
       } catch (error) {
         console.error(error);

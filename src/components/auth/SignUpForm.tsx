@@ -7,12 +7,14 @@ import Input from "../form/input/InputField";
 import Button from "../ui/button/Button";
 import API from "../../api";
 import toast from "react-hot-toast";
+import VerifySignupOTPForm from "./VerifySignupOTPForm";
 
 export default function SignUpForm() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showOtpForm, setShowOtpForm] = useState(false);
 
   const [form, setForm] = useState({
     user_name: "",
@@ -63,25 +65,28 @@ export default function SignUpForm() {
 
     setLoading(true);
     try {
-      await API.post("/users/custom", {
-        user_name: form.user_name.trim(),
-        email: form.email.trim().toLowerCase(),
-        password: form.password,
+      // 1. Send OTP instead of creating account directly
+      await API.post("/users/send-otp", null, {
+        params: { email: form.email.trim().toLowerCase() }
       });
-
-      toast.success(
-        "Account created successfully! Please wait for admin activation.",
-        { duration: 5000 },
-      );
-      navigate("/signin");
+      toast.success("OTP sent to your email!");
+      setShowOtpForm(true);
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.message ?? "Registration failed. Please try again.";
+      const msg = err?.response?.data?.message ?? "Failed to send OTP. Please try again.";
       toast.error(msg);
     } finally {
       setLoading(false);
     }
   };
+
+  if (showOtpForm) {
+    return (
+      <VerifySignupOTPForm
+        formData={form}
+        onBack={() => setShowOtpForm(false)}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col flex-1 w-full overflow-y-auto lg:w-1/2 no-scrollbar">

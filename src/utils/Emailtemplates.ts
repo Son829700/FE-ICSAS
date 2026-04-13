@@ -36,12 +36,6 @@ const FOOTER_STYLE = `
 `;
 
 /* =======================
-   OTP EMAIL
-   Gửi khi user yêu cầu reset password
-======================= */
-
-
-/* =======================
    ACCOUNT ACTIVATION EMAIL
    Gửi khi Admin activate tài khoản customer
 ======================= */
