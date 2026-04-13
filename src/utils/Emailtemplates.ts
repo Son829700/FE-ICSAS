@@ -160,47 +160,24 @@ export function buildActivationEmailBody(params: {
     </div>
 
     <!-- DESCRIPTION TEMPLATE -->
-    <div style="
-      background:#fff;
-      border:1px dashed #fdba74;
-      border-radius:12px;
-      padding:18px;
-      margin-bottom:24px;
-    ">
-      <p style="
-        margin:0 0 10px;
-        font-size:13px;
-        font-weight:600;
-        color:#9a3412;
-      ">
-        Suggested Ticket Description (copy & paste)
-      </p>
-
-      <div style="
-        background:#fff7ed;
-        border-radius:8px;
-        padding:12px;
-        font-size:13px;
-        color:#7c2d12;
-        line-height:1.6;
-        font-family:monospace;
-        white-space:pre-line;
-      ">
-Hello ICSAS Team,
-
-I would like to request access configuration for my account.
-
+   <div style="
+  background:#fff7ed;
+  border-radius:8px;
+  padding:12px;
+  font-size:13px;
+  color:#7c2d12;
+  line-height:1.6;
+  font-family:monospace;
+  white-space:pre-line;
+">
+Requesting Business assignment.
 Username: ${username}
 Email: ${email}
 
-Requested Shop Name: [e.g. Shop A / Shop B / Shop C]
+Business: [Business Name]
 
-Purpose:
-I need access to dashboards to support my daily work and monitor performance metrics.
-
-Thank you.
-      </div>
-    </div>
+Purpose: Access dashboards for daily work.
+</div>
 
     ${shopName
       ? `
