@@ -3,11 +3,11 @@ import API from "../api";
 
 /**
  * Coverage:
- * ✅ Navigate sang route khác        → useEffect cleanup
- * ✅ Chuyển tab / minimize window    → visibilitychange hidden
- * ✅ Đóng tab desktop                → beforeunload
- * ✅ Thoát app mobile (iOS/Android)  → pagehide (reliable trên mobile)
- * ✅ Quay lại tab/app                → visibilitychange visible → session mới
+ * Navigate sang route khác        → useEffect cleanup
+ * Chuyển tab / minimize window    → visibilitychange hidden
+ * Đóng tab desktop                → beforeunload
+ * Thoát app mobile (iOS/Android)  → pagehide (reliable trên mobile)
+ * Quay lại tab/app                → visibilitychange visible → session mới
  */
 export function useDashboardLogger(dashboardId: string | undefined) {
   const logIdRef = useRef<string | null>(null);
@@ -44,7 +44,7 @@ export function useDashboardLogger(dashboardId: string | undefined) {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-        }).catch(() => {});
+        }).catch(() => { });
       }
     } catch {
       // fallback cuối

@@ -28,17 +28,17 @@ const TICKET_TYPE_MAP: Record<string, string> = {
 };
 
 const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> =
-  {
-    DONE: "success",
-    RESOLVED: "success",
-    VERIFIED: "success",
-    APPROVED: "success",
-    IN_PROGRESS: "info",
-    WAITING_FOR_VERIFICATION: "warning",
-    CREATED: "warning",
-    REJECTED: "error",
-    CANCELLED: "error",
-  };
+{
+  DONE: "success",
+  RESOLVED: "success",
+  VERIFIED: "success",
+  APPROVED: "success",
+  IN_PROGRESS: "info",
+  WAITING_FOR_VERIFICATION: "warning",
+  CREATED: "warning",
+  REJECTED: "error",
+  CANCELLED: "error",
+};
 
 const ACTIVE_STATUSES = ["CREATED", "APPROVED", "IN_PROGRESS", "WAITING_FOR_VERIFICATION", "VERIFIED"] as const;
 const COMPLETED_STATUSES = ["RESOLVED", "DONE"] as const;
@@ -72,15 +72,15 @@ interface Ticket {
   description: string;
   dashboard_id: string;
   status:
-    | "CREATED"
-    | "APPROVED"
-    | "IN_PROGRESS"
-    | "WAITING_FOR_VERIFICATION"
-    | "VERIFIED"
-    | "RESOLVED"
-    | "REJECTED"
-    | "CANCELLED"
-    | "DONE";
+  | "CREATED"
+  | "APPROVED"
+  | "IN_PROGRESS"
+  | "WAITING_FOR_VERIFICATION"
+  | "VERIFIED"
+  | "RESOLVED"
+  | "REJECTED"
+  | "CANCELLED"
+  | "DONE";
   assigned_staff: User;
   approver: User;
   createdAt: string;
@@ -194,7 +194,7 @@ export default function SupportTicketPage() {
   ).length;
 
   let allowedTypes: string[] | undefined = undefined;
-  if (user?.role === "CUSTOMER" && !user?.department) {
+  if (!user?.department) {
     allowedTypes = ["TYPE2"];
   } else if (isManager) {
     allowedTypes = ["TYPE2"];
@@ -421,7 +421,7 @@ export default function SupportTicketPage() {
                     t.requester?.user_id === user?.user_id &&
                     !["DONE", "REJECTED", "CANCELLED"].includes(t.status)
                 ).length;
-                
+
                 if (unresolvedOwnTickets >= 3) {
                   toast.error("You have 3 or more active tickets. Please mark resolved tickets as DONE or wait for processing to create new ones.");
                   return;
@@ -627,11 +627,10 @@ export default function SupportTicketPage() {
                     <li key={p}>
                       <button
                         onClick={() => setPage(p)}
-                        className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${
-                          page === p
+                        className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${page === p
                             ? "bg-brand-500 text-white"
                             : "text-gray-700 hover:bg-brand-500/10 dark:text-gray-400"
-                        }`}
+                          }`}
                       >
                         {p}
                       </button>

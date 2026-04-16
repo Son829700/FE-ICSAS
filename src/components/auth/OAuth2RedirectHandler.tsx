@@ -15,6 +15,7 @@ interface Department {
   department_id: string;
   department_name: string;
   status: string;
+  department_type: "INTERNAL" | "EXTERNAL";
 }
 
 export default function OAuth2RedirectHandler() {
@@ -76,7 +77,8 @@ export default function OAuth2RedirectHandler() {
             // Chưa có ticket → fetch departments và hiện modal
             const deptRes = await API.get("/departments");
             const activeDepts: Department[] = (deptRes.data.data ?? []).filter(
-              (d: Department) => d.status === "ACTIVE",
+              (d: Department) =>
+                d.status === "ACTIVE" && d.department_type === "INTERNAL",
             );
             setDepartments(activeDepts);
             setDescription(
