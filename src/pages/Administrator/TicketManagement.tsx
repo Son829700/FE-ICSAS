@@ -2,13 +2,12 @@
 import { useEffect, useRef, useState } from "react";
 import API from "../../api";
 import {
-  Filter,
   X,
   Loader2,
   Send,
   UserCog,
   CheckCheck,
-  ExternalLink,
+  Search,
 } from "lucide-react";
 import PageMeta from "../../components/common/PageMeta";
 import Badge from "../../components/ui/badge/Badge";
@@ -1051,22 +1050,13 @@ export default function AdminTicketManagement() {
             </p>
           </div>
 
-          {/* Search + Filter gộp vào 1 group */}
-          <div className="flex items-center gap-2">
+          {/* Search + Filter */}
+          <div className="flex flex-wrap items-center gap-2">
             {/* Search */}
             <div className="relative">
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 fill-gray-400"
-                width="16"
-                height="16"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                  d="M3.04199 9.37363C3.04199 5.87693 5.87735 3.04199 9.37533 3.04199C12.8733 3.04199 15.7087 5.87693 15.7087 9.37363C15.7087 12.8703 12.8733 15.7053 9.37533 15.7053C5.87735 15.7053 3.04199 12.8703 3.04199 9.37363ZM9.37533 1.54199C5.04926 1.54199 1.54199 5.04817 1.54199 9.37363C1.54199 13.6991 5.04926 17.2053 9.37533 17.2053C11.2676 17.2053 13.0032 16.5344 14.3572 15.4176L17.1773 18.238C17.4702 18.5309 17.945 18.5309 18.2379 18.238C18.5308 17.9451 18.5309 17.4703 18.238 17.1773L15.4182 14.3573C16.5367 13.0033 17.2087 11.2669 17.2087 9.37363C17.2087 5.04817 13.7014 1.54199 9.37533 1.54199Z"
-                />
-              </svg>
+              <span className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400">
+                <Search size={15} />
+              </span>
               <input
                 type="text"
                 placeholder="Search requester, email..."
@@ -1075,82 +1065,65 @@ export default function AdminTicketManagement() {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="h-11 w-[220px] rounded-lg border border-gray-300 bg-white pl-9 pr-4 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-4 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 sm:w-[200px]"
               />
             </div>
 
-            {/* Filter */}
+            {/* Type filter chips */}
+            <div className="hidden h-10 items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 sm:inline-flex dark:bg-gray-900">
+              <button
+                onClick={() => { setFilter((p) => ({ ...p, type: "" })); setPage(1); }}
+                className={`h-9 rounded-md px-3 text-xs font-medium transition ${!filter.type ? "bg-white shadow-sm text-gray-900 dark:bg-gray-800 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400"}`}
+              >
+                All Types
+              </button>
+              <button
+                onClick={() => { setFilter((p) => ({ ...p, type: "TYPE2" })); setPage(1); }}
+                className={`h-9 rounded-md px-3 text-xs font-medium transition ${filter.type === "TYPE2" ? "bg-white shadow-sm text-gray-900 dark:bg-gray-800 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400"}`}
+              >
+                Account Mgmt
+              </button>
+              <button
+                onClick={() => { setFilter((p) => ({ ...p, type: "TYPE3" })); setPage(1); }}
+                className={`h-9 rounded-md px-3 text-xs font-medium transition ${filter.type === "TYPE3" ? "bg-white shadow-sm text-gray-900 dark:bg-gray-800 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400"}`}
+              >
+                Dashboard Dev
+              </button>
+            </div>
+
+            {/* Status dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setFilterOpen(!filterOpen)}
-                className="flex h-11 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                className={`flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition ${filter.status ? "border-brand-500 bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"}`}
               >
-                <Filter size={18} />
-                Filter
-                {(filter.type || filter.status) && (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-xs text-white">
-                    {[filter.type, filter.status].filter(Boolean).length}
-                  </span>
-                )}
+                <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+                  <path d="M14.6537 5.90414C14.6537 4.48433 13.5027 3.33331 12.0829 3.33331C10.6631 3.33331 9.51206 4.48433 9.51204 5.90415M14.6537 5.90414C14.6537 7.32398 13.5027 8.47498 12.0829 8.47498C10.663 8.47498 9.51204 7.32398 9.51204 5.90415M14.6537 5.90414L17.7087 5.90411M9.51204 5.90415L2.29199 5.90411M5.34694 14.0958C5.34694 12.676 6.49794 11.525 7.91777 11.525C9.33761 11.525 10.4886 12.676 10.4886 14.0958M5.34694 14.0958C5.34694 15.5156 6.49794 16.6666 7.91778 16.6666C9.33761 16.6666 10.4886 15.5156 10.4886 14.0958M5.34694 14.0958L2.29199 14.0958M10.4886 14.0958L17.7087 14.0958" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                {filter.status ? filter.status.replace(/_/g, " ") : "Status"}
+                {filter.status && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-500 text-[10px] text-white">1</span>}
               </button>
 
               {filterOpen && (
-                <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-                  <div className="mb-4">
-                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                      Ticket Type
-                    </label>
-                    <select
-                      value={filter.type}
-                      onChange={(e) => {
-                        setFilter((p) => ({ ...p, type: e.target.value }));
-                        setPage(1);
-                      }}
-                      className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                    >
-                      <option value="">All</option>
-                      <option value="TYPE2">User Account Management</option>
-                      <option value="TYPE3">Dashboard Development</option>
-                    </select>
-                  </div>
-                  <div className="mb-4">
-                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                      Status
-                    </label>
-                    <select
-                      value={filter.status}
-                      onChange={(e) => {
-                        setFilter((p) => ({ ...p, status: e.target.value }));
-                        setPage(1);
-                      }}
-                      className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                    >
-                      <option value="">All</option>
-                      <option value="CREATED">Created</option>
-                      <option value="APPROVED">Approved</option>
-                      <option value="RESOLVED">Resolved</option>
-                      <option value="DONE">Done</option>
-                      <option value="REJECTED">Rejected</option>
-                    </select>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setFilter({ type: "", status: "" });
-                        setPage(1);
-                        setFilterOpen(false);
-                      }}
-                      className="h-9 flex-1 rounded-lg border border-gray-300 text-xs font-medium text-gray-600 hover:bg-gray-50 transition"
-                    >
-                      Reset
-                    </button>
-                    <button
-                      onClick={() => setFilterOpen(false)}
-                      className="h-9 flex-1 rounded-lg bg-brand-500 text-xs font-medium text-white hover:bg-brand-600 transition"
-                    >
-                      Apply
-                    </button>
-                  </div>
+                <div className="absolute right-0 z-20 mt-2 w-64 rounded-xl border border-gray-200 bg-white py-1.5 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                  {["", "CREATED", "APPROVED", "RESOLVED", "WAITING_FOR_VERIFICATION", "VERIFIED", "DONE", "REJECTED", "CANCELLED"].map((s) => {
+                    const dotClass = s ? (
+                      statusColorMap[s] === "success" ? "bg-success-500" :
+                      statusColorMap[s] === "warning" ? "bg-warning-500" :
+                      statusColorMap[s] === "error" ? "bg-error-500" :
+                      "bg-info-500"
+                    ) : "bg-gray-400";
+                    return (
+                      <button
+                        key={s}
+                        onClick={() => { setFilter((p) => ({ ...p, status: s })); setPage(1); setFilterOpen(false); }}
+                        className={`flex w-full items-center gap-2.5 px-4 py-2 text-sm transition ${filter.status === s ? "text-brand-600 bg-brand-50 dark:bg-brand-900/20 dark:text-brand-400" : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.04]"}`}
+                      >
+                        {s !== "" && <span className={`h-2 w-2 rounded-full ${dotClass}`} />}
+                        {s === "" ? "All Statuses" : s.replace(/_/g, " ")}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>

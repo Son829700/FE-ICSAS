@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import API from "../../api";
 import {
   Plus,
@@ -7,8 +7,10 @@ import {
   ChevronUp,
   ChevronDown,
   Pencil,
-  MoreHorizontal,
   Layers,
+  Trash2,
+  RotateCcw,
+  AlertTriangle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ComponentCard from "../../components/common/ComponentCard";
@@ -36,63 +38,83 @@ export interface Group {
   department_name?: string;
 }
 
+
 /* =======================
-   3-DOT DROPDOWN
+   CONFIRM MODAL
 ======================= */
-function ActionDropdown({
+function ConfirmModal({
   group,
-  onEdit,
-  onView,
+  onConfirm,
+  onCancel,
 }: {
   group: Group;
-  onEdit: (g: Group) => void;
-  onView: (g: Group) => void;
+  onConfirm: () => void;
+  onCancel: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node))
-        setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
+  const isActive = group.status === "ACTIVE";
   return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center justify-center rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition dark:hover:bg-gray-800 dark:hover:text-gray-200"
-      >
-        <MoreHorizontal className="size-4" />
-      </button>
-
-      {open && (
-        <div className="absolute right-0 z-30 mt-1 w-44 rounded-xl border border-gray-100 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-          <button
-            onClick={() => {
-              onView(group);
-              setOpen(false);
-            }}
-            className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.04] transition"
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-900">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div
+            className={`flex h-12 w-12 items-center justify-center rounded-full ${
+              isActive
+                ? "bg-red-100 dark:bg-red-900/30"
+                : "bg-emerald-100 dark:bg-emerald-900/30"
+            }`}
           >
-            <Eye className="size-4 text-gray-400" />
-            View Detail
+            {isActive ? (
+              <AlertTriangle className="size-6 text-red-500" />
+            ) : (
+              <RotateCcw className="size-6 text-emerald-600" />
+            )}
+          </div>
+
+          <div>
+            <h3 className="text-base font-semibold text-gray-800 dark:text-white">
+              {isActive ? "Deactivate Group" : "Restore Group"}
+            </h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {isActive ? (
+                <>
+                  Are you sure you want to deactivate{" "}
+                  <span className="font-semibold text-gray-700 dark:text-gray-200">
+                    {group.group_name}
+                  </span>
+                  ? Members will lose access to its dashboards.
+                </>
+              ) : (
+                <>
+                  Restore{" "}
+                  <span className="font-semibold text-gray-700 dark:text-gray-200">
+                    {group.group_name}
+                  </span>
+                  ? This will re-activate the group.
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 flex gap-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 transition"
+          >
+            Cancel
           </button>
           <button
-            onClick={() => {
-              onEdit(group);
-              setOpen(false);
-            }}
-            className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.04] transition"
+            onClick={onConfirm}
+            className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition ${
+              isActive
+                ? "bg-red-500 hover:bg-red-600"
+                : "bg-emerald-600 hover:bg-emerald-700"
+            }`}
           >
-            <Pencil className="size-4 text-gray-400" />
-            Edit Group
+            {isActive ? "Yes, Deactivate" : "Yes, Restore"}
           </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -104,6 +126,7 @@ export default function GroupManagement() {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
+  const [confirmGroup, setConfirmGroup] = useState<Group | null>(null);
   const [sortKey, setSortKey] = useState<keyof Group>("group_name");
   const [sortAsc, setSortAsc] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -199,6 +222,25 @@ export default function GroupManagement() {
     setEditingGroup(null);
   };
 
+  const handleToggleStatus = async () => {
+    if (!confirmGroup) return;
+    try {
+      if (confirmGroup.status === "ACTIVE") {
+        await API.put(`/groups/soft-delete/${confirmGroup.group_id}`);
+        toast.success("Group deactivated successfully.");
+      } else {
+        await API.put(`/groups/restore/${confirmGroup.group_id}`);
+        toast.success("Group restored successfully.");
+      }
+      await fetchGroups();
+    } catch (err) {
+      console.error("Status toggle error:", err);
+      toast.error("Failed to update group status.");
+    } finally {
+      setConfirmGroup(null);
+    }
+  };
+
   // Filter + sort
   const processed = groups
     .filter(
@@ -255,6 +297,15 @@ export default function GroupManagement() {
 
   return (
     <div>
+      {/* Confirm deactivate / restore modal */}
+      {confirmGroup && (
+        <ConfirmModal
+          group={confirmGroup}
+          onConfirm={handleToggleStatus}
+          onCancel={() => setConfirmGroup(null)}
+        />
+      )}
+
       <PageMeta title="Group Management" description="Manage user groups" />
       <PageBreadcrumb pageTitle="Group Management" />
 
@@ -454,12 +505,40 @@ export default function GroupManagement() {
                     </TableCell>
 
                     {/* Actions */}
-                    <TableCell className="px-5 py-4 text-right">
-                      <ActionDropdown
-                        group={group}
-                        onEdit={handleEditClick}
-                        onView={(g) => navigate(`/groups/${g.group_id}`)}
-                      />
+                    <TableCell className="px-5 py-4">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => navigate(`/groups/${group.group_id}`)}
+                          title="View detail"
+                          className="inline-flex items-center justify-center rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                        >
+                          <Eye className="size-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEditClick(group)}
+                          title="Edit group"
+                          className="inline-flex items-center justify-center rounded-lg p-2 text-gray-400 hover:bg-amber-50 hover:text-amber-600 transition dark:hover:bg-amber-900/20"
+                        >
+                          <Pencil className="size-4" />
+                        </button>
+                        {group.status === "ACTIVE" ? (
+                          <button
+                            onClick={() => setConfirmGroup(group)}
+                            title="Deactivate"
+                            className="inline-flex items-center justify-center rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500 transition dark:hover:bg-red-900/20"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmGroup(group)}
+                            title="Restore"
+                            className="inline-flex items-center justify-center rounded-lg p-2 text-gray-400 hover:bg-emerald-50 hover:text-emerald-600 transition dark:hover:bg-emerald-900/20"
+                          >
+                            <RotateCcw className="size-4" />
+                          </button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

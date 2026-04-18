@@ -3,14 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import PageMeta from "../../components/common/PageMeta";
 import {
-  useFloating,
-  offset,
-  flip,
-  shift,
-  autoUpdate,
-} from "@floating-ui/react";
-import {
-  MoreHorizontal,
   Search,
   Filter,
   X,
@@ -18,6 +10,8 @@ import {
   Mail,
   CheckCircle,
   Users,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import API from "../../api";
 import toast from "react-hot-toast";
@@ -343,87 +337,6 @@ function CreateCustomerModal({
   );
 }
 
-/* =======================
-   ACTION MENU
-======================= */
-function ActionMenu({
-  open,
-  user,
-  onToggle,
-  onClose,
-  onView,
-  onToggleStatus,
-}: {
-  open: boolean;
-  user: User;
-  onToggle: () => void;
-  onClose: () => void;
-  onView: () => void;
-  onToggleStatus: () => void;
-}) {
-  const { refs, floatingStyles } = useFloating({
-    placement: "bottom-end",
-    middleware: [offset(6), flip(), shift({ padding: 8 })],
-    whileElementsMounted: autoUpdate,
-  });
-  const isActive = user.status === "ACTIVE";
-  const isCustomer = user.role === "CUSTOMER";
-
-  return (
-    <div ref={refs.setReference} className="relative inline-block">
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle();
-        }}
-        className="text-gray-400 hover:text-gray-600"
-      >
-        <MoreHorizontal className="size-5" />
-      </button>
-
-      {open && (
-        <div
-          ref={refs.setFloating}
-          style={floatingStyles}
-          className="
-    z-[99999]
-    w-44
-    rounded-xl
-    border border-gray-200
-    bg-white
-    shadow-xl
-
-    dark:bg-gray-900
-    dark:border-gray-700
-
-    backdrop-blur-md
-    bg-opacity-100
-  "
-        >
-          <button
-            onClick={() => {
-              onView();
-              onClose();
-            }}
-            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-white/[0.04] transition"
-          >
-            <Users className="size-4" /> Edit User
-          </button>
-          <button
-            onClick={() => {
-              onToggleStatus();
-              onClose();
-            }}
-            className={`flex w-full items-center gap-2 px-4 py-2 text-sm transition ${isActive ? "text-error-600 hover:bg-error-50 dark:hover:bg-error-500/10" : "text-success-600 hover:bg-success-50 dark:hover:bg-success-500/10"}`}
-          >
-            <CheckCircle className="size-4" />
-            {isActive ? "Deactivate" : "Activate"}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 /* =======================
    EDIT USER MODAL
@@ -523,11 +436,17 @@ function EditUserModal({
             <option value="">
               — {isCustomer ? "No shop assigned" : "Select department"} —
             </option>
-            {departments.map((d) => (
-              <option key={d.department_id} value={d.department_id}>
-                {d.department_name}
-              </option>
-            ))}
+            {departments
+              .filter((d) =>
+                isCustomer
+                  ? d.department_type === "EXTERNAL"
+                  : d.department_type === "INTERNAL",
+              )
+              .map((d) => (
+                <option key={d.department_id} value={d.department_id}>
+                  {d.department_name}
+                </option>
+              ))}
           </select>
         </div>
         <div className="flex justify-end gap-3">
@@ -557,7 +476,6 @@ function EditUserModal({
 export default function UserManagement() {
   const [tab, setTab] = useState<TabType>("INTERNAL");
   const [page, setPage] = useState(1);
-  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -754,11 +672,6 @@ export default function UserManagement() {
 
       <div
         className="rounded-2xl border border-gray-200 bg-white pt-4 dark:border-white/[0.05] dark:bg-white/[0.03]"
-        onClick={(e) => {
-          if (!(e.target as HTMLElement).closest(".action-menu")) {
-            setActiveMenuId(null);
-          }
-        }}
       >
         {/* Tabs */}
         <div className="mb-4 flex flex-col gap-3 px-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
@@ -991,18 +904,32 @@ export default function UserManagement() {
                       </span>
                     </td>
                     <td className="px-4 py-3.5">
-                      <ActionMenu
-                        open={activeMenuId === u.user_id}
-                        user={u}
-                        onToggle={() =>
-                          setActiveMenuId(
-                            activeMenuId === u.user_id ? null : u.user_id,
-                          )
-                        }
-                        onClose={() => setActiveMenuId(null)}
-                        onView={() => setEditingUser(u)}
-                        onToggleStatus={() => setConfirmUser(u)}
-                      />
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => setEditingUser(u)}
+                          title="Edit user"
+                          className="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-400 hover:bg-amber-50 hover:text-amber-600 transition dark:hover:bg-amber-900/20"
+                        >
+                          <Pencil className="size-4" />
+                        </button>
+                        {u.status === "ACTIVE" ? (
+                          <button
+                            onClick={() => setConfirmUser(u)}
+                            title="Deactivate"
+                            className="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition dark:hover:bg-red-900/20"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmUser(u)}
+                            title="Activate"
+                            className="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-400 hover:bg-emerald-50 hover:text-emerald-600 transition dark:hover:bg-emerald-900/20"
+                          >
+                            <CheckCircle className="size-4" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

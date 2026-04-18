@@ -11,26 +11,6 @@ import {
   Ticket,
   Users,
 } from "lucide-react";
-import API from "../api";
-
-interface Dashboard {
-  dashboard_id: string;
-  dashboard_name: string;
-  url_path: string;
-  category: string;
-  status: string;
-}
-
-export interface Group {
-  group_id: string;
-  group_name: string;
-  description: string;
-  member: number;
-  groupType: string;
-  status: string;
-  createdAt: string;
-  department_name?: string;
-}
 
 type NavItem = {
   name: string;
@@ -125,56 +105,9 @@ const AppSidebar: React.FC = () => {
   const location = useLocation();
   const { user, isManager } = useAuthContext();
   const role = user?.role;
-  const [userDashboards, setUserDashboards] = useState<Dashboard[]>([]);
 
   /* =====================
-     Fetch dashboards qua group cho TẤT CẢ user
-     (STAFF, BI, ADMINISTRATOR đều dùng group-based access)
-  ===================== */
-  useEffect(() => {
-    const fetchDashboards = async () => {
-      try {
-        if (!user?.user_id) return;
-
-        // Tất cả role đều lấy dashboard qua group được assign
-        const groupRes = await API.get(
-          `/groups/groups-by-user/${user.user_id}`,
-        );
-        const groups: Group[] = groupRes.data.data ?? [];
-
-        if (!groups.length) {
-          setUserDashboards([]);
-          return;
-        }
-
-        const responses = await Promise.all(
-          groups.map((g) =>
-            API.get(`/dashboard/group-access/group/${g.group_id}`),
-          ),
-        );
-
-        const allDashboards = responses
-          .flatMap((res) => res.data.data ?? [])
-          .filter((d: Dashboard) => d.status === "ACTIVE");
-
-        // Deduplicate
-        const map = new Map<string, Dashboard>();
-        allDashboards.forEach((d: Dashboard) => {
-          if (!map.has(d.dashboard_id)) map.set(d.dashboard_id, d);
-        });
-
-        setUserDashboards(Array.from(map.values()));
-      } catch (err) {
-        console.error("Fetch dashboards error:", err);
-        setUserDashboards([]);
-      }
-    };
-
-    fetchDashboards();
-  }, [user?.user_id, role]);
-
-  /* =====================
-     Build dynamic nav items
+     Build nav items (filtered by role)
   ===================== */
   const buildNavItems = (): NavItem[] => {
     // 1. Filter theo role
@@ -184,30 +117,12 @@ const AppSidebar: React.FC = () => {
     });
 
     // 2. Filter BI ticket items theo isManager
-    const biFiltered = roleFiltered.filter((item) => {
+    return roleFiltered.filter((item) => {
       if (role === "BI") {
         if (item.path === "/BI/ticket") return isManager;
         if (item.path === "/BI/my-ticket") return !isManager;
       }
       return true;
-    });
-
-    // 3. Build dynamic dashboard submenu
-    return biFiltered.map((item) => {
-      if (item.name === "Dashboard") {
-        if (userDashboards.length > 0) {
-          return {
-            ...item,
-            path: undefined,
-            subItems: userDashboards.map((d) => ({
-              name: d.dashboard_name,
-              path: `/dashboard/${d.dashboard_id}`,
-            })),
-          };
-        }
-        return { ...item, subItems: undefined, path: "/" };
-      }
-      return item;
     });
   };
 
@@ -223,7 +138,13 @@ const AppSidebar: React.FC = () => {
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const isActive = useCallback(
-    (path: string) => location.pathname === path,
+    (path: string) => {
+      if (location.pathname === path) return true;
+      // Dashboard item ("/") should also be active on /dashboard/:id
+      if (path === "/" && location.pathname.startsWith("/dashboard/"))
+        return true;
+      return false;
+    },
     [location.pathname],
   );
 
