@@ -39,7 +39,16 @@ export default function DatePicker({
       onChange,
     });
 
+    const handleScroll = () => {
+      if (flatPickr) {
+        (Array.isArray(flatPickr) ? flatPickr[0] : flatPickr).close();
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, true);
+
     return () => {
+      window.removeEventListener("scroll", handleScroll, true);
       if (!Array.isArray(flatPickr)) {
         flatPickr.destroy();
       }

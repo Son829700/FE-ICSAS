@@ -91,6 +91,24 @@ export default function NotificationDropdown() {
     }
   };
 
+  const handleReadAll = async () => {
+    if (!user?.user_id || unreadCount === 0) return;
+    try {
+      // First attempt a standard read-all endpoint pattern, fallback to parallel array updates
+      await API.put(`/notifications/read-all/${user.user_id}`).catch(async () => {
+        const unreadNotifs = notifications.filter(n => !(n.isRead || n.read));
+        await Promise.all(unreadNotifs.map(n => API.put(`/notifications/${n.id || n.notificationId}/read`)));
+      });
+
+      setNotifications((prev) =>
+        prev.map((n) => ({ ...n, isRead: true, read: true }))
+      );
+      setUnreadCount(0);
+    } catch (error) {
+      console.error("Lỗi khi đánh dấu đã đọc tất cả:", error);
+    }
+  };
+
   const handleClick = () => {
     toggleDropdown();
   };
@@ -159,7 +177,7 @@ export default function NotificationDropdown() {
         <ul className="flex flex-col h-auto overflow-y-auto custom-scrollbar">
           {notifications.length === 0 ? (
             <div className="p-5 text-sm text-center text-gray-500 dark:text-gray-400">
-              Bạn chưa có thông báo nào.
+              You don't have any notifications yet.
             </div>
           ) : (
             notifications.map((n: any, idx: number) => {
@@ -205,12 +223,12 @@ export default function NotificationDropdown() {
           )}
         </ul>
 
-        <Link
-          to="/"
-          className="block px-4 py-2 mt-3 text-sm font-medium text-center text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+        <button
+          onClick={handleReadAll}
+          className="block w-full px-4 py-2 mt-3 text-sm font-medium text-center text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 transition"
         >
-          View All Notifications
-        </Link>
+          Read All Notifications
+        </button>
       </Dropdown>
     </div>
   );

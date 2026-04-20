@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "../../components/ui/table";
 import toast from "react-hot-toast";
+import DatePicker from "../../components/form/date-picker";
 
 /* =======================
    CONSTANTS
@@ -114,6 +115,123 @@ function DetailRow({
   );
 }
 
+function CustomTimePicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [inputValue, setInputValue] = useState(value);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Disabled manual typing
+  };
+
+  const handleSelect = (type: "hour" | "minute", val: string) => {
+    const [h, m] = (inputValue || "00:00").split(":");
+    let newH = h || "00";
+    let newM = m || "00";
+    if (type === "hour") newH = val;
+    if (type === "minute") newM = val;
+
+    const newVal = `${newH}:${newM}`;
+    setInputValue(newVal);
+    onChange(newVal);
+  };
+
+  return (
+    <div className="relative flex-1 min-w-[130px]" ref={containerRef}>
+      <div 
+        onClick={() => setIsOpen(true)}
+        className="cursor-pointer"
+      >
+        <input
+          type="text"
+          value={inputValue}
+          readOnly
+          placeholder="HH:mm"
+          className="h-10 w-full rounded-lg border appearance-none px-3 py-2 text-sm shadow-theme-xs outline-none focus:ring-3 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800 cursor-pointer caret-transparent"
+        />
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-[99999] bottom-full mb-2 w-[200px] rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-800 dark:bg-gray-900 p-3 flex gap-2">
+          {/* Hours Column */}
+          <div className="flex-1 border-r border-gray-100 dark:border-gray-800 pr-2">
+            <h4 className="text-xs font-semibold mb-2 text-gray-500 dark:text-gray-400 text-center">
+              Hour
+            </h4>
+            <ul className="max-h-48 overflow-y-auto custom-scrollbar flex flex-col gap-1 pr-1">
+              {Array.from({ length: 24 }).map((_, i) => {
+                const val = i.toString().padStart(2, "0");
+                const isSelected = inputValue.split(":")[0] === val;
+                return (
+                  <li
+                    key={`h-${val}`}
+                    onClick={() => handleSelect("hour", val)}
+                    className={`cursor-pointer rounded-lg px-2 py-1.5 text-center text-sm transition-colors ${
+                      isSelected
+                        ? "bg-brand-500 text-white font-medium"
+                        : "hover:bg-gray-100 text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                    }`}
+                  >
+                    {val}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+          {/* Minutes Column */}
+          <div className="flex-1 pl-1">
+            <h4 className="text-xs font-semibold mb-2 text-gray-500 dark:text-gray-400 text-center">
+              Minute
+            </h4>
+            <ul className="max-h-48 overflow-y-auto custom-scrollbar flex flex-col gap-1 pr-1">
+              {Array.from({ length: 60 }).map((_, i) => {
+                const val = i.toString().padStart(2, "0");
+                const isSelected = inputValue.split(":")[1] === val;
+                return (
+                  <li
+                    key={`m-${val}`}
+                    onClick={() => handleSelect("minute", val)}
+                    className={`cursor-pointer rounded-lg px-2 py-1.5 text-center text-sm transition-colors ${
+                      isSelected
+                        ? "bg-brand-500 text-white font-medium"
+                        : "hover:bg-gray-100 text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                    }`}
+                  >
+                    {val}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TicketDetailModal({
   ticket,
   biStaffs,
@@ -124,7 +242,7 @@ function TicketDetailModal({
     ticket.assigned_staff?.user_id ?? "",
   );
   const [deadlineDate, setDeadlineDate] = useState<string>("");
-  const [deadlineTime, setDeadlineTime] = useState<string>("");
+  const [deadlineTime, setDeadlineTime] = useState<string>("00:00");
   const [assigning, setAssigning] = useState(false);
 
   const isAlreadyAssigned = !!ticket.assigned_staff;
@@ -134,8 +252,8 @@ function TicketDetailModal({
       toast.error("Please select a BI staff member.");
       return;
     }
-    if (!deadlineDate || !deadlineTime) {
-      toast.error("Please select both date and time for the deadline.");
+    if (!deadlineDate) {
+      toast.error("Please select a date for the deadline.");
       return;
     }
     try {
@@ -342,29 +460,22 @@ function TicketDetailModal({
 
                   <div className="flex gap-2">
                     <div className="flex-[2]">
-                      <input
-                        type="date"
-                        value={deadlineDate}
-                        onChange={(e) => setDeadlineDate(e.target.value)}
-                        className="h-10 w-full rounded-lg border appearance-none px-3 py-2 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
-                        min={new Date().toISOString().split("T")[0]}
+                      <DatePicker
+                        id={`deadline-date-${ticket.ticket_id}`}
+                        placeholder="Select Date"
+                        onChange={(_, dateStr) => setDeadlineDate(dateStr as string)}
                       />
                     </div>
-                    <div className="flex-1 min-w-[100px]">
-                      <input
-                        type="time"
+                      <CustomTimePicker
                         value={deadlineTime}
-                        onChange={(e) => setDeadlineTime(e.target.value)}
-                        className="h-10 w-full rounded-lg border appearance-none px-3 py-2 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                        onChange={(v) => setDeadlineTime(v)}
                       />
-                    </div>
 
                     <button
                       onClick={handleAssign}
                       disabled={
                         !selectedStaff ||
                         !deadlineDate ||
-                        !deadlineTime ||
                         assigning ||
                         selectedStaff === ticket.assigned_staff?.user_id
                       }
