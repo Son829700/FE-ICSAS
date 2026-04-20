@@ -26,16 +26,16 @@ const TICKET_TYPE_MAP: Record<string, string> = {
 };
 
 const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> =
-  {
-    DONE: "success",
-    RESOLVED: "success",
-    VERIFIED: "success",
-    APPROVED: "info",
-    IN_PROGRESS: "warning",
-    WAITING_FOR_VERIFICATION: "warning",
-    REJECTED: "error",
-    CANCELLED: "error",
-  };
+{
+  DONE: "success",
+  RESOLVED: "success",
+  VERIFIED: "success",
+  APPROVED: "info",
+  IN_PROGRESS: "warning",
+  WAITING_FOR_VERIFICATION: "warning",
+  REJECTED: "error",
+  CANCELLED: "error",
+};
 
 const PAGE_SIZE = 10;
 
@@ -71,19 +71,20 @@ interface Ticket {
   dashboard_id: string;
   reason: string;
   status:
-    | "CREATED"
-    | "APPROVED"
-    | "IN_PROGRESS"
-    | "WAITING_FOR_VERIFICATION" // ← thêm
-    | "VERIFIED" // ← thêm
-    | "RESOLVED"
-    | "REJECTED"
-    | "CANCELLED"
-    | "DONE";
+  | "CREATED"
+  | "APPROVED"
+  | "IN_PROGRESS"
+  | "WAITING_FOR_VERIFICATION" // ← thêm
+  | "VERIFIED" // ← thêm
+  | "RESOLVED"
+  | "REJECTED"
+  | "CANCELLED"
+  | "DONE";
   assigned_staff: User | null;
   approver: User | null;
   createdAt: string;
   updatedAt: string;
+  deadline?: string;
 }
 
 interface FilterValue {
@@ -315,6 +316,16 @@ function TicketDetailModal({
               label="Created At"
               value={new Date(currentTicket.createdAt).toLocaleString()}
             />
+            {currentTicket.deadline && (
+              <DetailRow
+                label="Deadline"
+                value={
+                  <span className="font-semibold text-brand-600 dark:text-brand-400">
+                    {new Date(currentTicket.deadline).toLocaleString()}
+                  </span>
+                }
+              />
+            )}
             <DetailRow
               label="Last Updated"
               value={new Date(currentTicket.updatedAt).toLocaleString()}
@@ -530,18 +541,16 @@ function TicketDetailModal({
           {/* TERMINAL */}
           {isTerminal && currentTicket.status !== "RESOLVED" && (
             <div
-              className={`rounded-xl border px-4 py-3 ${
-                currentTicket.status === "DONE"
+              className={`rounded-xl border px-4 py-3 ${currentTicket.status === "DONE"
                   ? "border-success-200 bg-success-50 dark:border-success-800 dark:bg-success-900/10"
                   : "border-error-200 bg-error-50 dark:border-error-800 dark:bg-error-900/10"
-              }`}
+                }`}
             >
               <p
-                className={`text-sm font-medium ${
-                  currentTicket.status === "DONE"
+                className={`text-sm font-medium ${currentTicket.status === "DONE"
                     ? "text-success-700 dark:text-success-400"
                     : "text-error-600 dark:text-error-400"
-                }`}
+                  }`}
               >
                 {currentTicket.status === "DONE"
                   ? "Ticket completed successfully."
@@ -853,7 +862,13 @@ export default function TicketListBIStaff() {
                   isHeader
                   className="px-4 py-3 text-start text-theme-xs text-gray-500"
                 >
-                  Department
+                  Assigned Staff
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                >
+                  Deadline
                 </TableCell>
                 <TableCell
                   isHeader
@@ -919,8 +934,18 @@ export default function TicketListBIStaff() {
                       <TableCell className="px-4 py-4 text-sm text-gray-500 max-w-[180px] truncate">
                         {ticket.description}
                       </TableCell>
-                      <TableCell className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
-                        {ticket.requester?.department?.department_name ?? "—"}
+                      <TableCell className="px-4 py-4">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-800 dark:text-white">
+                            {ticket.assigned_staff?.username ?? "—"}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {ticket.assigned_staff?.email}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-4 text-sm font-medium text-brand-600 dark:text-brand-400">
+                        {ticket.deadline ? new Date(ticket.deadline).toLocaleString() : "—"}
                       </TableCell>
                       <TableCell className="px-4 py-4 text-sm text-gray-500">
                         {new Date(ticket.createdAt).toLocaleDateString()}
@@ -1004,11 +1029,10 @@ export default function TicketListBIStaff() {
                     <li key={p}>
                       <button
                         onClick={() => setPage(p)}
-                        className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${
-                          page === p
+                        className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${page === p
                             ? "bg-brand-500 text-white"
                             : "text-gray-700 hover:bg-brand-500/10 dark:text-gray-400"
-                        }`}
+                          }`}
                       >
                         {p}
                       </button>

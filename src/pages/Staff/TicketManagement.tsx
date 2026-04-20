@@ -85,6 +85,7 @@ interface Ticket {
   approver: User;
   createdAt: string;
   updatedAt: string;
+  deadline?: string;
 }
 
 interface FilterValue {
@@ -468,6 +469,12 @@ export default function SupportTicketPage() {
                     isHeader
                     className="px-4 py-3 text-start text-theme-xs text-gray-500"
                   >
+                    Deadline
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                  >
                     Created
                   </TableCell>
                   <TableCell
@@ -532,6 +539,9 @@ export default function SupportTicketPage() {
                               {ticket.assigned_staff?.email}
                             </span>
                           </div>
+                        </TableCell>
+                        <TableCell className="px-4 py-4 text-sm font-medium text-brand-600 dark:text-brand-400">
+                          {ticket.deadline ? new Date(ticket.deadline).toLocaleString() : "—"}
                         </TableCell>
                         <TableCell className="px-4 py-4 text-sm text-gray-500">
                           {new Date(ticket.createdAt).toLocaleDateString()}
@@ -628,8 +638,8 @@ export default function SupportTicketPage() {
                       <button
                         onClick={() => setPage(p)}
                         className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${page === p
-                            ? "bg-brand-500 text-white"
-                            : "text-gray-700 hover:bg-brand-500/10 dark:text-gray-400"
+                          ? "bg-brand-500 text-white"
+                          : "text-gray-700 hover:bg-brand-500/10 dark:text-gray-400"
                           }`}
                       >
                         {p}

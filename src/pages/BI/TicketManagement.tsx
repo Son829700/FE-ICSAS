@@ -24,16 +24,16 @@ const TICKET_TYPE_MAP: Record<string, string> = {
 };
 
 const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> =
-  {
-    DONE: "success",
-    RESOLVED: "success",
-    VERIFIED: "success",
-    APPROVED: "info",
-    IN_PROGRESS: "warning",
-    WAITING_FOR_VERIFICATION: "warning",
-    REJECTED: "error",
-    CANCELLED: "error",
-  };
+{
+  DONE: "success",
+  RESOLVED: "success",
+  VERIFIED: "success",
+  APPROVED: "info",
+  IN_PROGRESS: "warning",
+  WAITING_FOR_VERIFICATION: "warning",
+  REJECTED: "error",
+  CANCELLED: "error",
+};
 
 const PAGE_SIZE = 10;
 
@@ -64,19 +64,20 @@ interface Ticket {
   dashboard_id: string;
   reason: string;
   status:
-    | "CREATED"
-    | "APPROVED"
-    | "IN_PROGRESS"
-    | "RESOLVED"
-    | "WAITING_FOR_VERIFICATION"
-    | "VERIFIED"
-    | "REJECTED"
-    | "CANCELLED"
-    | "DONE";
+  | "CREATED"
+  | "APPROVED"
+  | "IN_PROGRESS"
+  | "RESOLVED"
+  | "WAITING_FOR_VERIFICATION"
+  | "VERIFIED"
+  | "REJECTED"
+  | "CANCELLED"
+  | "DONE";
   assigned_staff: User | null;
   approver: User | null;
   createdAt: string;
   updatedAt: string;
+  deadline?: string;
 }
 
 interface FilterValue {
@@ -122,6 +123,8 @@ function TicketDetailModal({
   const [selectedStaff, setSelectedStaff] = useState(
     ticket.assigned_staff?.user_id ?? "",
   );
+  const [deadlineDate, setDeadlineDate] = useState<string>("");
+  const [deadlineTime, setDeadlineTime] = useState<string>("");
   const [assigning, setAssigning] = useState(false);
 
   const isAlreadyAssigned = !!ticket.assigned_staff;
@@ -131,9 +134,27 @@ function TicketDetailModal({
       toast.error("Please select a BI staff member.");
       return;
     }
+    if (!deadlineDate || !deadlineTime) {
+      toast.error("Please select both date and time for the deadline.");
+      return;
+    }
     try {
       setAssigning(true);
-      await API.post(`/tickets/${ticket.ticket_id}/assign/${selectedStaff}`);
+
+      // Check current assigned tickets (IN_PROGRESS)
+      const res = await API.get(`/tickets/assigned/${selectedStaff}/status/IN_PROGRESS`);
+      const activeTickets = res.data?.data || [];
+      if (activeTickets.length >= 5) {
+        toast.error("This BI staff is already handling 5 or more tickets. Please assign to someone else.");
+        setAssigning(false);
+        return;
+      }
+
+      await API.post(`/tickets/assign-ticket`, {
+        ticketId: ticket.ticket_id,
+        assigneeId: selectedStaff,
+        deadline: `${deadlineDate}T${deadlineTime}:00`,
+      });
       toast.success("Ticket assigned successfully!");
       onAssigned();
       onClose();
@@ -164,7 +185,7 @@ function TicketDetailModal({
         <div className="p-6 space-y-6">
           {/* Ticket Info */}
           <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-          
+
             <DetailRow
               label="Requester"
               value={
@@ -244,6 +265,16 @@ function TicketDetailModal({
               }
             />
 
+            {ticket.deadline && (
+              <DetailRow
+                label="Deadline"
+                value={
+                  <span className="font-semibold text-brand-600 dark:text-brand-400">
+                    {new Date(ticket.deadline).toLocaleString()}
+                  </span>
+                }
+              />
+            )}
             {ticket.reason && (
               <DetailRow
                 label="Reason"
@@ -259,7 +290,7 @@ function TicketDetailModal({
               Assign to BI Staff
             </h4>
 
-            {["RESOLVED", "DONE", "REJECTED", "CANCELLED"].includes(
+            {["VERIFIED", "RESOLVED", "DONE", "REJECTED", "CANCELLED"].includes(
               ticket.status,
             ) ? (
               <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
@@ -295,11 +326,11 @@ function TicketDetailModal({
                   </div>
                 )}
 
-                <div className="flex gap-3">
+                <div className="flex flex-col gap-3">
                   <select
                     value={selectedStaff}
                     onChange={(e) => setSelectedStaff(e.target.value)}
-                    className="flex-1 h-10 rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                    className="h-10 rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
                   >
                     <option value="">-- Select BI Staff --</option>
                     {biStaffs.map((s) => (
@@ -309,26 +340,48 @@ function TicketDetailModal({
                     ))}
                   </select>
 
-                  <button
-                    onClick={handleAssign}
-                    disabled={
-                      !selectedStaff ||
-                      assigning ||
-                      selectedStaff === ticket.assigned_staff?.user_id
-                    }
-                    className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 transition"
-                  >
-                    {assigning ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <Send className="size-4" />
-                    )}
-                    {assigning
-                      ? "Assigning..."
-                      : isAlreadyAssigned
-                        ? "Reassign"
-                        : "Assign"}
-                  </button>
+                  <div className="flex gap-2">
+                    <div className="flex-[2]">
+                      <input
+                        type="date"
+                        value={deadlineDate}
+                        onChange={(e) => setDeadlineDate(e.target.value)}
+                        className="h-10 w-full rounded-lg border appearance-none px-3 py-2 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                        min={new Date().toISOString().split("T")[0]}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-[100px]">
+                      <input
+                        type="time"
+                        value={deadlineTime}
+                        onChange={(e) => setDeadlineTime(e.target.value)}
+                        className="h-10 w-full rounded-lg border appearance-none px-3 py-2 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                      />
+                    </div>
+
+                    <button
+                      onClick={handleAssign}
+                      disabled={
+                        !selectedStaff ||
+                        !deadlineDate ||
+                        !deadlineTime ||
+                        assigning ||
+                        selectedStaff === ticket.assigned_staff?.user_id
+                      }
+                      className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 transition"
+                    >
+                      {assigning ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Send className="size-4" />
+                      )}
+                      {assigning
+                        ? "Assigning..."
+                        : isAlreadyAssigned
+                          ? "Reassign"
+                          : "Assign"}
+                    </button>
+                  </div>
                 </div>
 
                 {selectedStaff === ticket.assigned_staff?.user_id &&
@@ -552,7 +605,7 @@ export default function TicketListBI() {
                 className={`flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition ${filter.status ? "border-brand-500 bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"}`}
               >
                 <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
-                  <path d="M14.6537 5.90414C14.6537 4.48433 13.5027 3.33331 12.0829 3.33331C10.6631 3.33331 9.51206 4.48433 9.51204 5.90415M14.6537 5.90414C14.6537 7.32398 13.5027 8.47498 12.0829 8.47498C10.663 8.47498 9.51204 7.32398 9.51204 5.90415M14.6537 5.90414L17.7087 5.90411M9.51204 5.90415L2.29199 5.90411M5.34694 14.0958C5.34694 12.676 6.49794 11.525 7.91777 11.525C9.33761 11.525 10.4886 12.676 10.4886 14.0958M5.34694 14.0958C5.34694 15.5156 6.49794 16.6666 7.91778 16.6666C9.33761 16.6666 10.4886 15.5156 10.4886 14.0958M5.34694 14.0958L2.29199 14.0958M10.4886 14.0958L17.7087 14.0958" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M14.6537 5.90414C14.6537 4.48433 13.5027 3.33331 12.0829 3.33331C10.6631 3.33331 9.51206 4.48433 9.51204 5.90415M14.6537 5.90414C14.6537 7.32398 13.5027 8.47498 12.0829 8.47498C10.663 8.47498 9.51204 7.32398 9.51204 5.90415M14.6537 5.90414L17.7087 5.90411M9.51204 5.90415L2.29199 5.90411M5.34694 14.0958C5.34694 12.676 6.49794 11.525 7.91777 11.525C9.33761 11.525 10.4886 12.676 10.4886 14.0958M5.34694 14.0958C5.34694 15.5156 6.49794 16.6666 7.91778 16.6666C9.33761 16.6666 10.4886 15.5156 10.4886 14.0958M5.34694 14.0958L2.29199 14.0958M10.4886 14.0958L17.7087 14.0958" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 {filter.status ? filter.status.replace(/_/g, " ") : "Status"}
                 {filter.status && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-500 text-[10px] text-white">1</span>}
@@ -563,9 +616,9 @@ export default function TicketListBI() {
                   {["", "APPROVED", "IN_PROGRESS", "RESOLVED", "WAITING_FOR_VERIFICATION", "VERIFIED", "DONE", "REJECTED", "CANCELLED"].map((s) => {
                     const dotClass = s ? (
                       statusColorMap[s] === "success" ? "bg-success-500" :
-                      statusColorMap[s] === "warning" ? "bg-warning-500" :
-                      statusColorMap[s] === "error" ? "bg-error-500" :
-                      "bg-info-500"
+                        statusColorMap[s] === "warning" ? "bg-warning-500" :
+                          statusColorMap[s] === "error" ? "bg-error-500" :
+                            "bg-info-500"
                     ) : "bg-gray-400";
                     return (
                       <button
@@ -613,6 +666,12 @@ export default function TicketListBI() {
                     className="px-4 py-3 text-start text-theme-xs text-gray-500"
                   >
                     Assigned Staff
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-4 py-3 text-start text-theme-xs text-gray-500"
+                  >
+                    Deadline
                   </TableCell>
                   <TableCell
                     isHeader
@@ -671,8 +730,11 @@ export default function TicketListBI() {
                           </span>
                         </div>
                       </TableCell>
+                      <TableCell className="px-4 py-4 text-sm font-medium text-brand-600 dark:text-brand-400">
+                        {ticket.deadline ? new Date(ticket.deadline).toLocaleString() : "—"}
+                      </TableCell>
                       <TableCell className="px-4 py-4 text-sm text-gray-500">
-                        {new Date(ticket.createdAt).toLocaleDateString()}
+                        {new Date(ticket.createdAt).toLocaleString()}
                       </TableCell>
                       <TableCell className="px-4 py-4">
                         <Badge
@@ -752,11 +814,10 @@ export default function TicketListBI() {
                     <li key={p}>
                       <button
                         onClick={() => setPage(p)}
-                        className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${
-                          page === p
+                        className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${page === p
                             ? "bg-brand-500 text-white"
                             : "text-gray-700 hover:bg-brand-500/10 dark:text-gray-400"
-                        }`}
+                          }`}
                       >
                         {p}
                       </button>

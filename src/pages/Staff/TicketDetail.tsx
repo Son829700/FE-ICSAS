@@ -58,6 +58,7 @@ interface Ticket {
   approver: User | null;
   createdAt: string;
   updatedAt: string;
+  deadline?: string;
 }
 
 /* =======================
@@ -561,6 +562,16 @@ export default function TicketDetail() {
                 </span>
                 <span className="w-2/3 text-sm text-error-500 dark:text-error-400">
                   {ticket.reason}
+                </span>
+              </li>
+            )}
+            {ticket.deadline && (
+              <li className="flex items-start gap-5 py-2.5">
+                <span className="w-1/3 text-sm text-gray-500 dark:text-gray-400">
+                  Deadline
+                </span>
+                <span className="w-2/3 text-sm font-semibold text-brand-600 dark:text-brand-400">
+                  {new Date(ticket.deadline).toLocaleString()}
                 </span>
               </li>
             )}
