@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import API from "../../api";
 import { Plus, Pencil, Trash2, RotateCcw, Eye, X } from "lucide-react";
 import ComponentCard from "../../components/common/ComponentCard";
@@ -161,6 +161,22 @@ export default function DashboardManagement() {
     null,
   );
   const [dashboards, setDashboards] = useState<Dashboard[]>([]);
+  const [filterSearch, setFilterSearch] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setFilterOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   const [formData, setFormData] = useState({
     dashboard_name: "",
     url_path: "",
@@ -265,10 +281,18 @@ export default function DashboardManagement() {
     }
   };
 
-  // Stats
   const active = dashboards.filter((d) => d.status === "ACTIVE").length;
   const draft = dashboards.filter((d) => d.status === "DRAFT").length;
   const inactive = dashboards.filter((d) => d.status === "INACTIVE").length;
+
+  const filteredDashboards = dashboards.filter((d) => {
+    const matchSearch = filterSearch
+      ? d.dashboard_name.toLowerCase().includes(filterSearch.toLowerCase())
+      : true;
+    const matchCategory = filterCategory ? d.category === filterCategory : true;
+    const matchStatus = filterStatus ? d.status === filterStatus : true;
+    return matchSearch && matchCategory && matchStatus;
+  });
 
   return (
     <div>
@@ -306,14 +330,118 @@ export default function DashboardManagement() {
         title="Dashboards"
         desc="Manage all dashboards in the system"
         headerAction={
-          <Button
-            size="md"
-            variant="primary"
-            startIcon={<Plus className="size-4 text-white" />}
-            onClick={handleAddClick}
-          >
-            New Dashboard
-          </Button>
+          <div className="flex flex-wrap items-center gap-2 justify-end">
+            {/* Search */}
+            <div className="relative">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 fill-gray-400"
+                width="16"
+                height="16"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M3.04199 9.37363C3.04199 5.87693 5.87735 3.04199 9.37533 3.04199C12.8733 3.04199 15.7087 5.87693 15.7087 9.37363C15.7087 12.8703 12.8733 15.7053 9.37533 15.7053C5.87735 15.7053 3.04199 12.8703 3.04199 9.37363ZM9.37533 1.54199C5.04926 1.54199 1.54199 5.04817 1.54199 9.37363C1.54199 13.6991 5.04926 17.2053 9.37533 17.2053C11.2676 17.2053 13.0032 16.5344 14.3572 15.4176L17.1773 18.238C17.4702 18.5309 17.945 18.5309 18.2379 18.238C18.5308 17.9451 18.5309 17.4703 18.238 17.1773L15.4182 14.3573C16.5367 13.0033 17.2087 11.2669 17.2087 9.37363C17.2087 5.04817 13.7014 1.54199 9.37533 1.54199Z"
+                />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search..."
+                value={filterSearch}
+                onChange={(e) => setFilterSearch(e.target.value)}
+                className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-4 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 sm:w-[150px]"
+              />
+            </div>
+
+            {/* Status tabs (Chips) */}
+            <div className="hidden h-10 items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 sm:inline-flex dark:bg-gray-900 overflow-x-auto custom-scrollbar">
+              {["", "ACTIVE", "DRAFT", "INACTIVE"].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setFilterStatus(s)}
+                  className={`h-9 rounded-md px-3 text-xs font-medium transition whitespace-nowrap ${filterStatus === s ? "bg-white shadow-sm text-gray-900 dark:bg-gray-800 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400"}`}
+                >
+                  {s === "" ? "All Statuses" : s.charAt(0) + s.slice(1).toLowerCase()}
+                </button>
+              ))}
+            </div>
+
+            {/* Category Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setFilterOpen(!filterOpen)}
+                className={`flex h-10 min-w-[140px] items-center justify-between gap-1.5 rounded-lg border px-3 text-sm font-medium transition ${
+                  filterCategory
+                    ? "border-brand-500 bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400"
+                    : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {filterCategory && (
+                    <span
+                      className={`h-2 w-2 rounded-full flex-shrink-0 ${
+                        filterCategory === "OVERVIEW"
+                          ? "bg-blue-500"
+                          : filterCategory === "ANALYTICS"
+                            ? "bg-purple-500"
+                            : filterCategory === "SALES"
+                              ? "bg-green-500"
+                              : filterCategory === "MARKETING"
+                                ? "bg-pink-500"
+                                : "bg-orange-500"
+                      }`}
+                    />
+                  )}
+                  {filterCategory
+                    ? filterCategory.charAt(0) +
+                      filterCategory.slice(1).toLowerCase()
+                    : "All Categories"}
+                </div>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+
+              {filterOpen && (
+                <div className="absolute right-0 z-20 mt-2 w-48 rounded-xl border border-gray-200 bg-white py-1.5 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                  {["", "OVERVIEW", "ANALYTICS", "SALES", "MARKETING", "SUPPORT"].map((c) => {
+                    const dotClass =
+                        c === "OVERVIEW"
+                          ? "bg-blue-500"
+                          : c === "ANALYTICS"
+                            ? "bg-purple-500"
+                            : c === "SALES"
+                              ? "bg-green-500"
+                              : c === "MARKETING"
+                                ? "bg-pink-500"
+                                : c === "SUPPORT"
+                                  ? "bg-orange-500"
+                                  : "bg-gray-400";
+                    return (
+                      <button
+                        key={c}
+                        onClick={() => { setFilterCategory(c); setFilterOpen(false); }}
+                        className={`flex w-full items-center gap-2.5 px-4 py-2 text-sm transition ${filterCategory === c ? "text-brand-600 bg-brand-50 dark:bg-brand-900/20 dark:text-brand-400" : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.04]"}`}
+                      >
+                        {c !== "" && <span className={`h-2 w-2 rounded-full flex-shrink-0 ${dotClass}`} />}
+                        {c === "" ? "All Categories" : c.charAt(0) + c.slice(1).toLowerCase()}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <Button
+              size="md"
+              variant="primary"
+              startIcon={<Plus className="size-4 text-white" />}
+              onClick={handleAddClick}
+            >
+              New Dashboard
+            </Button>
+          </div>
         }
       >
         <div className="overflow-x-auto">
@@ -342,12 +470,6 @@ export default function DashboardManagement() {
                   isHeader
                   className="px-5 py-3 text-start text-theme-xs text-gray-500"
                 >
-                  URL
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-5 py-3 text-start text-theme-xs text-gray-500"
-                >
                   Created By
                 </TableCell>
                 <TableCell
@@ -360,14 +482,14 @@ export default function DashboardManagement() {
             </TableHeader>
 
             <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-              {dashboards.length === 0 ? (
+              {filteredDashboards.length === 0 ? (
                 <TableRow>
                   <TableCell className="px-5 py-10 text-center text-sm text-gray-400">
                     No dashboards found.
                   </TableCell>
                 </TableRow>
               ) : (
-                dashboards.map((dashboard) => (
+                filteredDashboards.map((dashboard) => (
                   <TableRow
                     key={dashboard.dashboard_id}
                     className={
@@ -400,16 +522,6 @@ export default function DashboardManagement() {
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLE[dashboard.status]}`}
                       >
                         {dashboard.status}
-                      </span>
-                    </TableCell>
-
-                    {/* URL */}
-                    <TableCell className="px-5 py-4">
-                      <span
-                        title={dashboard.url_path}
-                        className="inline-block max-w-[200px] truncate rounded-md bg-gray-100 px-2 py-1 font-mono text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300"
-                      >
-                        {dashboard.url_path}
                       </span>
                     </TableCell>
 

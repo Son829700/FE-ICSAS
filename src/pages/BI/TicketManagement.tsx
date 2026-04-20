@@ -244,6 +244,24 @@ function TicketDetailModal({
   const [deadlineDate, setDeadlineDate] = useState<string>("");
   const [deadlineTime, setDeadlineTime] = useState<string>("00:00");
   const [assigning, setAssigning] = useState(false);
+  const [activeCount, setActiveCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!selectedStaff) {
+      setActiveCount(null);
+      return;
+    }
+    const fetchActiveCount = async () => {
+      try {
+        const res = await API.get(`/tickets/assigned/${selectedStaff}/status/IN_PROGRESS`);
+        const count = res.data?.data?.length || 0;
+        setActiveCount(count);
+      } catch (err) {
+        console.error("Failed to fetch active tickets count:", err);
+      }
+    };
+    fetchActiveCount();
+  }, [selectedStaff]);
 
   const isAlreadyAssigned = !!ticket.assigned_staff;
 
@@ -445,18 +463,25 @@ function TicketDetailModal({
                 )}
 
                 <div className="flex flex-col gap-3">
-                  <select
-                    value={selectedStaff}
-                    onChange={(e) => setSelectedStaff(e.target.value)}
-                    className="h-10 rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                  >
-                    <option value="">-- Select BI Staff --</option>
-                    {biStaffs.map((s) => (
-                      <option key={s.user_id} value={s.user_id}>
-                        {s.username} — {s.email}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex flex-col gap-1">
+                    <select
+                      value={selectedStaff}
+                      onChange={(e) => setSelectedStaff(e.target.value)}
+                      className="h-10 rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                    >
+                      <option value="">-- Select BI Staff --</option>
+                      {biStaffs.map((s) => (
+                        <option key={s.user_id} value={s.user_id}>
+                          {s.username} — {s.email}
+                        </option>
+                      ))}
+                    </select>
+                    {activeCount !== null && (
+                      <p className={`text-xs ml-1 ${activeCount >= 5 ? 'text-error-500 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
+                        {activeCount >= 5 ? '⚠️ ' : ''}Currently assigned {activeCount} IN_PROGRESS ticket(s)
+                      </p>
+                    )}
+                  </div>
 
                   <div className="flex gap-2">
                     <div className="flex-[2]">

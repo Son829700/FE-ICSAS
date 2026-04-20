@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import API from "../../api";
 import {
   Plus,
@@ -57,11 +57,10 @@ function ConfirmModal({
       <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-900">
         <div className="flex flex-col items-center gap-3 text-center">
           <div
-            className={`flex h-12 w-12 items-center justify-center rounded-full ${
-              isActive
+            className={`flex h-12 w-12 items-center justify-center rounded-full ${isActive
                 ? "bg-red-100 dark:bg-red-900/30"
                 : "bg-emerald-100 dark:bg-emerald-900/30"
-            }`}
+              }`}
           >
             {isActive ? (
               <AlertTriangle className="size-6 text-red-500" />
@@ -105,11 +104,10 @@ function ConfirmModal({
           </button>
           <button
             onClick={onConfirm}
-            className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition ${
-              isActive
+            className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition ${isActive
                 ? "bg-red-500 hover:bg-red-600"
                 : "bg-emerald-600 hover:bg-emerald-700"
-            }`}
+              }`}
           >
             {isActive ? "Yes, Deactivate" : "Yes, Restore"}
           </button>
@@ -131,6 +129,21 @@ export default function GroupManagement() {
   const [sortAsc, setSortAsc] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setFilterOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   const pageSize = 8;
   const [groups, setGroups] = useState<Group[]>([]);
   const [formData, setFormData] = useState({
@@ -243,11 +256,15 @@ export default function GroupManagement() {
 
   // Filter + sort
   const processed = groups
-    .filter(
-      (g) =>
-        g.group_name.toLowerCase().includes(search.toLowerCase()) ||
-        g.description?.toLowerCase().includes(search.toLowerCase()),
-    )
+    .filter((g) => {
+      const matchSearch = search
+        ? g.group_name.toLowerCase().includes(search.toLowerCase()) ||
+        g.description?.toLowerCase().includes(search.toLowerCase())
+        : true;
+      const matchType = filterType ? g.groupType === filterType : true;
+      const matchStatus = filterStatus ? g.status === filterStatus : true;
+      return matchSearch && matchType && matchStatus;
+    })
     .sort((a, b) => {
       const valA = a[sortKey] ?? "";
       const valB = b[sortKey] ?? "";
@@ -339,9 +356,9 @@ export default function GroupManagement() {
         title="All Groups"
         desc="Manage and organize your team groups"
         headerAction={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 justify-end">
             {/* Search */}
-            <div className="relative hidden sm:block">
+            <div className="relative">
               <svg
                 className="absolute left-3 top-1/2 -translate-y-1/2 fill-gray-400"
                 width="16"
@@ -356,15 +373,66 @@ export default function GroupManagement() {
               </svg>
               <input
                 type="text"
-                placeholder="Search groups..."
+                placeholder="Search..."
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="h-10 w-[200px] rounded-lg border border-gray-300 bg-white pl-9 pr-4 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-4 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 sm:w-[150px]"
               />
             </div>
+
+            {/* Type tabs (Chips) */}
+            <div className="hidden h-10 items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 sm:inline-flex dark:bg-gray-900 overflow-x-auto custom-scrollbar">
+              {["", "TRADITIONAL", "ADHOC"].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => {
+                    setFilterType(t);
+                    setCurrentPage(1);
+                  }}
+                  className={`h-9 rounded-md px-3 text-xs font-medium transition whitespace-nowrap ${filterType === t ? "bg-white shadow-sm text-gray-900 dark:bg-gray-800 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400"}`}
+                >
+                  {t === "" ? "All Types" : t.charAt(0) + t.slice(1).toLowerCase()}
+                </button>
+              ))}
+            </div>
+
+            {/* Status Dropdown - Like Logs Entity */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setFilterOpen(!filterOpen)}
+                className={`flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition ${filterStatus ? "border-brand-500 bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"}`}
+              >
+                <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+                  <path d="M14.6537 5.90414C14.6537 4.48433 13.5027 3.33331 12.0829 3.33331C10.6631 3.33331 9.51206 4.48433 9.51204 5.90415M14.6537 5.90414C14.6537 7.32398 13.5027 8.47498 12.0829 8.47498C10.663 8.47498 9.51204 7.32398 9.51204 5.90415M14.6537 5.90414L17.7087 5.90411M9.51204 5.90415L2.29199 5.90411M5.34694 14.0958C5.34694 12.676 6.49794 11.525 7.91777 11.525C9.33761 11.525 10.4886 12.676 10.4886 14.0958M5.34694 14.0958C5.34694 15.5156 6.49794 16.6666 7.91778 16.6666C9.33761 16.6666 10.4886 15.5156 10.4886 14.0958M5.34694 14.0958L2.29199 14.0958M10.4886 14.0958L17.7087 14.0958" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {filterStatus ? filterStatus.charAt(0) + filterStatus.slice(1).toLowerCase() : "Status"}
+                {filterStatus && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-500 text-[10px] text-white">1</span>}
+              </button>
+
+              {filterOpen && (
+                <div className="absolute right-0 z-20 mt-2 w-48 rounded-xl border border-gray-200 bg-white py-1.5 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                  {["", "ACTIVE", "INACTIVE"].map((s) => {
+                    const dotClass = 
+                      s === "ACTIVE" ? "bg-emerald-500" :
+                      s === "INACTIVE" ? "bg-red-500" : "bg-gray-400";
+                    return (
+                      <button
+                        key={s}
+                        onClick={() => { setFilterStatus(s); setCurrentPage(1); setFilterOpen(false); }}
+                        className={`flex w-full items-center gap-2.5 px-4 py-2 text-sm transition ${filterStatus === s ? "text-brand-600 bg-brand-50 dark:bg-brand-900/20 dark:text-brand-400" : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.04]"}`}
+                      >
+                        {s !== "" && <span className={`h-2 w-2 rounded-full ${dotClass}`} />}
+                        {s === "" ? "All Statuses" : s.charAt(0) + s.slice(1).toLowerCase()}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             <Button
               size="md"
               variant="primary"
@@ -376,6 +444,7 @@ export default function GroupManagement() {
           </div>
         }
       >
+
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
@@ -456,13 +525,12 @@ export default function GroupManagement() {
                     {/* Type */}
                     <TableCell className="px-5 py-4">
                       <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          group.groupType === "TRADITIONAL"
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${group.groupType === "TRADITIONAL"
                             ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
                             : group.groupType === "ADHOC"
                               ? "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400"
                               : "bg-gray-100 text-gray-500"
-                        }`}
+                          }`}
                       >
                         {group.groupType === "TRADITIONAL"
                           ? "Traditional"
@@ -475,11 +543,10 @@ export default function GroupManagement() {
                     {/* Status */}
                     <TableCell className="px-5 py-4">
                       <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          group.status === "ACTIVE"
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${group.status === "ACTIVE"
                             ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                             : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
-                        }`}
+                          }`}
                       >
                         {group.status}
                       </span>
@@ -583,11 +650,10 @@ export default function GroupManagement() {
               <button
                 key={p}
                 onClick={() => setCurrentPage(p)}
-                className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition ${
-                  currentPage === p
+                className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition ${currentPage === p
                     ? "bg-brand-500 text-white"
                     : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-                }`}
+                  }`}
               >
                 {p}
               </button>
@@ -652,11 +718,10 @@ export default function GroupManagement() {
               {(["TRADITIONAL", "ADHOC"] as const).map((type) => (
                 <label
                   key={type}
-                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${
-                    formData.groupType === type
+                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${formData.groupType === type
                       ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10"
                       : "border-gray-200 hover:border-gray-300 dark:border-gray-700"
-                  }`}
+                    }`}
                 >
                   <input
                     type="radio"
@@ -667,11 +732,10 @@ export default function GroupManagement() {
                     className="hidden"
                   />
                   <div
-                    className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${
-                      formData.groupType === type
+                    className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${formData.groupType === type
                         ? "border-brand-500"
                         : "border-gray-300"
-                    }`}
+                      }`}
                   >
                     {formData.groupType === type && (
                       <div className="h-2 w-2 rounded-full bg-brand-500" />
