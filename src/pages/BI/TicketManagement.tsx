@@ -161,7 +161,7 @@ function CustomTimePicker({
 
   return (
     <div className="relative flex-1 min-w-[130px]" ref={containerRef}>
-      <div 
+      <div
         onClick={() => setIsOpen(true)}
         className="cursor-pointer"
       >
@@ -189,11 +189,10 @@ function CustomTimePicker({
                   <li
                     key={`h-${val}`}
                     onClick={() => handleSelect("hour", val)}
-                    className={`cursor-pointer rounded-lg px-2 py-1.5 text-center text-sm transition-colors ${
-                      isSelected
+                    className={`cursor-pointer rounded-lg px-2 py-1.5 text-center text-sm transition-colors ${isSelected
                         ? "bg-brand-500 text-white font-medium"
                         : "hover:bg-gray-100 text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                    }`}
+                      }`}
                   >
                     {val}
                   </li>
@@ -214,11 +213,10 @@ function CustomTimePicker({
                   <li
                     key={`m-${val}`}
                     onClick={() => handleSelect("minute", val)}
-                    className={`cursor-pointer rounded-lg px-2 py-1.5 text-center text-sm transition-colors ${
-                      isSelected
+                    className={`cursor-pointer rounded-lg px-2 py-1.5 text-center text-sm transition-colors ${isSelected
                         ? "bg-brand-500 text-white font-medium"
                         : "hover:bg-gray-100 text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                    }`}
+                      }`}
                   >
                     {val}
                   </li>
@@ -276,6 +274,13 @@ function TicketDetailModal({
     }
     try {
       setAssigning(true);
+
+      const deadlineDateTime = new Date(`${deadlineDate}T${deadlineTime}:00`);
+      if (deadlineDateTime <= new Date()) {
+        toast.error("Please select a future date and time.");
+        setAssigning(false);
+        return;
+      }
 
       // Check current assigned tickets (IN_PROGRESS)
       const res = await API.get(`/tickets/assigned/${selectedStaff}/status/IN_PROGRESS`);
@@ -491,10 +496,10 @@ function TicketDetailModal({
                         onChange={(_, dateStr) => setDeadlineDate(dateStr as string)}
                       />
                     </div>
-                      <CustomTimePicker
-                        value={deadlineTime}
-                        onChange={(v) => setDeadlineTime(v)}
-                      />
+                    <CustomTimePicker
+                      value={deadlineTime}
+                      onChange={(v) => setDeadlineTime(v)}
+                    />
 
                     <button
                       onClick={handleAssign}
@@ -951,8 +956,8 @@ export default function TicketListBI() {
                       <button
                         onClick={() => setPage(p)}
                         className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${page === p
-                            ? "bg-brand-500 text-white"
-                            : "text-gray-700 hover:bg-brand-500/10 dark:text-gray-400"
+                          ? "bg-brand-500 text-white"
+                          : "text-gray-700 hover:bg-brand-500/10 dark:text-gray-400"
                           }`}
                       >
                         {p}

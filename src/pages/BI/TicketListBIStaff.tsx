@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useRef, useState } from "react";
 import API from "../../api";
-import { Filter, X, Loader2, CheckCheck } from "lucide-react";
+import { Filter, X, Loader2, CheckCheck, AlertTriangle } from "lucide-react";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 import Badge from "../../components/ui/badge/Badge";
@@ -16,6 +16,7 @@ import {
 import toast from "react-hot-toast";
 import { useAuthContext } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { Modal } from "../../components/ui/modal";
 
 /* =======================
    CONSTANTS
@@ -542,14 +543,14 @@ function TicketDetailModal({
           {isTerminal && currentTicket.status !== "RESOLVED" && (
             <div
               className={`rounded-xl border px-4 py-3 ${currentTicket.status === "DONE"
-                  ? "border-success-200 bg-success-50 dark:border-success-800 dark:bg-success-900/10"
-                  : "border-error-200 bg-error-50 dark:border-error-800 dark:bg-error-900/10"
+                ? "border-success-200 bg-success-50 dark:border-success-800 dark:bg-success-900/10"
+                : "border-error-200 bg-error-50 dark:border-error-800 dark:bg-error-900/10"
                 }`}
             >
               <p
                 className={`text-sm font-medium ${currentTicket.status === "DONE"
-                    ? "text-success-700 dark:text-success-400"
-                    : "text-error-600 dark:text-error-400"
+                  ? "text-success-700 dark:text-success-400"
+                  : "text-error-600 dark:text-error-400"
                   }`}
               >
                 {currentTicket.status === "DONE"
@@ -581,6 +582,7 @@ export default function TicketListBIStaff() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [overdueAlertTicket, setOverdueAlertTicket] = useState<Ticket | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -907,15 +909,33 @@ export default function TicketListBIStaff() {
                   const isRequester =
                     ticket.requester?.user_id === user?.user_id;
 
+                  const now = new Date();
+                  const deadlineDate = ticket.deadline ? new Date(ticket.deadline) : null;
+                  const isPastDeadline = deadlineDate && deadlineDate < now;
+
+                  // Less than 24h
+                  const timeDiffMs = deadlineDate ? deadlineDate.getTime() - now.getTime() : null;
+                  const isNearDeadline = timeDiffMs !== null && timeDiffMs > 0 && timeDiffMs <= 24 * 60 * 60 * 1000;
+
+                  // Not done/resolved
+                  const isNotDone = ticket.status !== "DONE" && ticket.status !== "RESOLVED" && ticket.status !== "VERIFIED" && ticket.status !== "CANCELLED" && ticket.status !== "REJECTED";
+
+                  const showOverdueWarning = isNotDone && isPastDeadline;
+                  const showNearWarning = isNotDone && isNearDeadline;
+
                   return (
                     <TableRow
                       key={ticket.ticket_id}
                       className={
-                        needsAction
-                          ? "bg-brand-50/30 dark:bg-brand-500/5"
-                          : inProgress
-                            ? "bg-warning-50/30 dark:bg-warning-500/5"
-                            : ""
+                        showOverdueWarning
+                          ? "bg-error-50/50 dark:bg-error-500/10"
+                          : showNearWarning
+                            ? "bg-warning-50/50 dark:bg-warning-500/10"
+                            : needsAction
+                              ? "bg-brand-50/30 dark:bg-brand-500/5"
+                              : inProgress
+                                ? "bg-warning-50/30 dark:bg-warning-500/5"
+                                : ""
                       }
                     >
                       <TableCell className="px-4 py-4">
@@ -944,8 +964,20 @@ export default function TicketListBIStaff() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="px-4 py-4 text-sm font-medium text-brand-600 dark:text-brand-400">
-                        {ticket.deadline ? new Date(ticket.deadline).toLocaleString() : "—"}
+                      <TableCell className="px-4 py-4 text-sm font-medium">
+                        <div className={`flex flex-col items-start ${showOverdueWarning ? "text-error-600 dark:text-error-500" : showNearWarning ? "text-warning-600 dark:text-warning-500" : "text-brand-600 dark:text-brand-400"}`}>
+                          <span>{ticket.deadline ? new Date(ticket.deadline).toLocaleString() : "—"}</span>
+                          {showOverdueWarning && (
+                            <span className="text-[10px] uppercase font-bold text-error-500 flex items-center gap-1 mt-0.5 animate-pulse">
+                              <AlertTriangle size={12} /> Overdue
+                            </span>
+                          )}
+                          {showNearWarning && (
+                            <span className="text-[10px] uppercase font-bold text-warning-500 flex items-center gap-1 mt-0.5">
+                              <AlertTriangle size={12} /> Near Deadline
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="px-4 py-4 text-sm text-gray-500">
                         {new Date(ticket.createdAt).toLocaleDateString()}
@@ -969,9 +1001,11 @@ export default function TicketListBIStaff() {
                       <TableCell className="px-4 py-4 text-right">
                         <Button
                           size="sm"
-                          variant={needsAction ? "primary" : "outline"}
+                          variant={showOverdueWarning ? "error" : needsAction ? "primary" : "outline"}
                           onClick={() => {
-                            if (isAssigned) {
+                            if (showOverdueWarning) {
+                              setOverdueAlertTicket(ticket);
+                            } else if (isAssigned) {
                               setSelectedTicket(ticket);
                             } else if (isRequester) {
                               navigate(`/ticket/${ticket.ticket_id}`);
@@ -1030,8 +1064,8 @@ export default function TicketListBIStaff() {
                       <button
                         onClick={() => setPage(p)}
                         className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${page === p
-                            ? "bg-brand-500 text-white"
-                            : "text-gray-700 hover:bg-brand-500/10 dark:text-gray-400"
+                          ? "bg-brand-500 text-white"
+                          : "text-gray-700 hover:bg-brand-500/10 dark:text-gray-400"
                           }`}
                       >
                         {p}
@@ -1051,6 +1085,44 @@ export default function TicketListBIStaff() {
           </div>
         </div>
       </div>
+
+      {overdueAlertTicket && (
+        <Modal
+          isOpen={!!overdueAlertTicket}
+          onClose={() => setOverdueAlertTicket(null)}
+          className="max-w-sm w-full mx-4"
+        >
+          <div className="p-5">
+            <div className="flex flex-col items-center text-center space-y-3">
+
+              <div className="rounded-full bg-error-100 p-3 dark:bg-error-500/20">
+                <AlertTriangle className="size-7 text-error-600 dark:text-error-500" />
+              </div>
+
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                Deadline Exceeded
+              </h3>
+
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Ticket has passed its deadline.
+                <br />
+                Please contact BI Manager to reset it.
+              </p>
+
+              <Button
+                size="md"
+                variant="primary"
+                className="w-full mt-2"
+                onClick={() => setOverdueAlertTicket(null)}
+              >
+                I Understand
+              </Button>
+
+            </div>
+          </div>
+        </Modal>
+      )}
+
     </div>
   );
 }

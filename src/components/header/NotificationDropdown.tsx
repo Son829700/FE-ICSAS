@@ -32,7 +32,7 @@ export default function NotificationDropdown() {
 
         // Sắp xếp giảm dần theo id nếu API chưa sắp xếp
         const sortedList = [...dataList].sort((a: any, b: any) =>
-          (b.notificationId || b.id) - (a.notificationId || a.id)
+          (b.notification_id || b.notificationId || b.id) - (a.notification_id || a.notificationId || a.id)
         );
 
         setNotifications(sortedList);
@@ -80,7 +80,7 @@ export default function NotificationDropdown() {
       await API.put(`/notifications/${notificationId}/read`);
       setNotifications((prev) =>
         prev.map((n) =>
-          n.id === notificationId || n.notificationId === notificationId
+          n.id === notificationId || n.notificationId === notificationId || n.notification_id === notificationId
             ? { ...n, isRead: true, read: true }
             : n
         )
@@ -97,7 +97,10 @@ export default function NotificationDropdown() {
       // First attempt a standard read-all endpoint pattern, fallback to parallel array updates
       await API.put(`/notifications/read-all/${user.user_id}`).catch(async () => {
         const unreadNotifs = notifications.filter(n => !(n.isRead || n.read));
-        await Promise.all(unreadNotifs.map(n => API.put(`/notifications/${n.id || n.notificationId}/read`)));
+        await Promise.all(unreadNotifs.map(n => {
+          const idToRead = n.notification_id || n.id || n.notificationId;
+          return API.put(`/notifications/${idToRead}/read`);
+        }));
       });
 
       setNotifications((prev) =>
@@ -181,7 +184,7 @@ export default function NotificationDropdown() {
             </div>
           ) : (
             notifications.map((n: any, idx: number) => {
-              const id = n.id || n.notificationId;
+              const id = n.notification_id || n.id || n.notificationId;
               const isRead = n.isRead || n.read;
 
               return (
