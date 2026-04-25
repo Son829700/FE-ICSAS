@@ -677,7 +677,7 @@ export default function TicketListBIStaff() {
       )}
 
       <PageMeta
-        title="My Assigned Tickets | BI Staff"
+        title="BI Developer | Ticket List"
         description="Process your assigned tickets"
       />
 

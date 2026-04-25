@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import API from "../../api";
-import { Plus, Building2,  CheckCircle, Globe, Lock, Eye } from "lucide-react";
+import { Plus, Building2, CheckCircle, Globe, Lock, Eye } from "lucide-react";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
@@ -229,7 +229,7 @@ export default function DepartmentManagement() {
   ===================== */
   return (
     <div>
-      <PageMeta title="Department Management | Admin" description="Manage system departments" />
+      <PageMeta title="Administrator | Department Management" description="Manage system departments" />
       <PageBreadcrumb pageTitle="Department Management" />
 
       {/* Stats */}
@@ -298,8 +298,8 @@ export default function DepartmentManagement() {
                   key={t}
                   onClick={() => { setTypeFilter(t); setPage(1); }}
                   className={`h-9 rounded-md px-3 text-xs font-medium transition ${typeFilter === t
-                      ? "bg-white shadow-sm text-gray-900 dark:bg-gray-800 dark:text-white"
-                      : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                    ? "bg-white shadow-sm text-gray-900 dark:bg-gray-800 dark:text-white"
+                    : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
                     }`}
                 >
                   {t === "ALL" ? "All Types" : t.charAt(0) + t.slice(1).toLowerCase()}
@@ -314,8 +314,8 @@ export default function DepartmentManagement() {
                   key={s}
                   onClick={() => { setStatusFilter(s); setPage(1); }}
                   className={`h-9 rounded-md px-3 text-xs font-medium transition ${statusFilter === s
-                      ? "bg-white shadow-sm text-gray-900 dark:bg-gray-800 dark:text-white"
-                      : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                    ? "bg-white shadow-sm text-gray-900 dark:bg-gray-800 dark:text-white"
+                    : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
                     }`}
                 >
                   {s === "ALL" ? "All Status" : s.charAt(0) + s.slice(1).toLowerCase()}
@@ -371,12 +371,12 @@ export default function DepartmentManagement() {
                     <TableCell className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${department.department_type === "EXTERNAL"
-                            ? "bg-purple-50 dark:bg-purple-500/10"
-                            : "bg-brand-50 dark:bg-brand-500/10"
+                          ? "bg-purple-50 dark:bg-purple-500/10"
+                          : "bg-brand-50 dark:bg-brand-500/10"
                           }`}>
                           <Building2 className={`size-4 ${department.department_type === "EXTERNAL"
-                              ? "text-purple-500"
-                              : "text-brand-500"
+                            ? "text-purple-500"
+                            : "text-brand-500"
                             }`} />
                         </div>
                         <span className="font-medium text-gray-800 dark:text-white/90">
@@ -415,8 +415,8 @@ export default function DepartmentManagement() {
                     <TableCell className="px-5 py-4">
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${department.status === "ACTIVE"
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                            : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                          : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
                           }`}
                       >
                         {department.status}
@@ -474,8 +474,8 @@ export default function DepartmentManagement() {
                     key={p}
                     onClick={() => setPage(p as number)}
                     className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition ${page === p
-                        ? "bg-brand-500 text-white"
-                        : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+                      ? "bg-brand-500 text-white"
+                      : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
                       }`}
                   >
                     {p}
@@ -612,10 +612,10 @@ export default function DepartmentManagement() {
                     : role === "CUSTOMER";
                 })
                 .map((user) => (
-                <option key={user.user_id} value={user.user_id}>
-                  {user.username} ({user.role})
-                </option>
-              ))}
+                  <option key={user.user_id} value={user.user_id}>
+                    {user.username} ({user.role})
+                  </option>
+                ))}
             </select>
           </div>
 
@@ -630,10 +630,10 @@ export default function DepartmentManagement() {
                   <label
                     key={s}
                     className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${formData.status === s
-                        ? s === "ACTIVE"
-                          ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10"
-                          : "border-red-400 bg-red-50 dark:bg-red-900/10"
-                        : "border-gray-200 hover:border-gray-300 dark:border-gray-700"
+                      ? s === "ACTIVE"
+                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10"
+                        : "border-red-400 bg-red-50 dark:bg-red-900/10"
+                      : "border-gray-200 hover:border-gray-300 dark:border-gray-700"
                       }`}
                   >
                     <input
@@ -646,8 +646,8 @@ export default function DepartmentManagement() {
                     />
                     <div
                       className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${formData.status === s
-                          ? s === "ACTIVE" ? "border-emerald-500" : "border-red-400"
-                          : "border-gray-300"
+                        ? s === "ACTIVE" ? "border-emerald-500" : "border-red-400"
+                        : "border-gray-300"
                         }`}
                     >
                       {formData.status === s && (
@@ -656,8 +656,8 @@ export default function DepartmentManagement() {
                     </div>
                     <span
                       className={`text-sm font-medium ${formData.status === s
-                          ? s === "ACTIVE" ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
-                          : "text-gray-600 dark:text-gray-400"
+                        ? s === "ACTIVE" ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                        : "text-gray-600 dark:text-gray-400"
                         }`}
                     >
                       {s.charAt(0) + s.slice(1).toLowerCase()}

@@ -57,7 +57,7 @@ const PAGE_SIZE = 10;
 async function sendEmail(to: string, subject: string, body: string) {
   try {
     await API.post("/email/send", {
-      to: [to], 
+      to: [to],
       subject,
       body,
     });
@@ -231,7 +231,7 @@ function CreateCustomerModal({
                 onChange={(e) =>
                   setForm((p) => ({ ...p, user_name: e.target.value }))
                 }
-                placeholder="e.g. shop_owner_abc"
+                placeholder="e.g. business_owner_abc"
                 required
                 className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               />
@@ -268,7 +268,7 @@ function CreateCustomerModal({
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                Assign to Shop (Department)
+                Assign to Business (Department)
               </label>
               <select
                 value={form.departmentId}
@@ -426,7 +426,7 @@ function EditUserModal({
         )}
         <div className="mb-6">
           <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-            {isCustomer ? "Shop (Department)" : "Department"}
+            {isCustomer ? "Business (Department)" : "Department"}
           </label>
           <select
             value={departmentId}
@@ -434,7 +434,7 @@ function EditUserModal({
             className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
           >
             <option value="">
-              — {isCustomer ? "No shop assigned" : "Select department"} —
+              — {isCustomer ? "No business assigned" : "Select department"} —
             </option>
             {departments
               .filter((d) =>
@@ -544,7 +544,7 @@ export default function UserManagement() {
               buildActivationEmailBody({
                 username: user.username,
                 email: user.email,
-                shopName: user.department?.department_name,
+                businessName: user.department?.department_name,
               }),
             );
             toast.success(`${user.username} activated + email sent.`);
@@ -610,7 +610,7 @@ export default function UserManagement() {
 
   return (
     <>
-      <PageMeta title="User Management" description="User management page" />
+      <PageMeta title="Administrator | User Management" description="User management page" />
 
       {confirmUser && (
         <ConfirmModal
@@ -765,7 +765,7 @@ export default function UserManagement() {
                   )}
                   <div className="mb-3">
                     <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                      {tab === "CUSTOMER" ? "Shop" : "Department"}
+                      {tab === "CUSTOMER" ? "Business" : "Department"}
                     </label>
                     <select
                       value={filter.department}
@@ -834,7 +834,7 @@ export default function UserManagement() {
                   "User",
                   "Email",
                   "Role",
-                  tab === "CUSTOMER" ? "Shop" : "Department",
+                  tab === "CUSTOMER" ? "Business" : "Department",
                   "Created",
                   "Status",
                 ].map((h) => (
@@ -862,11 +862,10 @@ export default function UserManagement() {
                 paginatedUsers.map((u) => (
                   <tr
                     key={u.user_id}
-                    className={`transition hover:bg-gray-50/50 ${
-                      u.status === "INACTIVE"
-                        ? "bg-gray-50 dark:bg-white/[0.02]"
-                        : ""
-                    }`}
+                    className={`transition hover:bg-gray-50/50 ${u.status === "INACTIVE"
+                      ? "bg-gray-50 dark:bg-white/[0.02]"
+                      : ""
+                      }`}
                   >
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2.5">

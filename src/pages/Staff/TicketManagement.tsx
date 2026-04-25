@@ -220,7 +220,7 @@ export default function SupportTicketPage() {
       />
 
       <PageMeta
-        title="Support Ticket"
+        title={isManager ? "Manager | Ticket Management" : "Staff | Ticket Management"}
         description="Manage and track customer support tickets"
       />
       {/* STATS */}

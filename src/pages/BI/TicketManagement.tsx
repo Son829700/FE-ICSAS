@@ -190,8 +190,8 @@ function CustomTimePicker({
                     key={`h-${val}`}
                     onClick={() => handleSelect("hour", val)}
                     className={`cursor-pointer rounded-lg px-2 py-1.5 text-center text-sm transition-colors ${isSelected
-                        ? "bg-brand-500 text-white font-medium"
-                        : "hover:bg-gray-100 text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                      ? "bg-brand-500 text-white font-medium"
+                      : "hover:bg-gray-100 text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                       }`}
                   >
                     {val}
@@ -214,8 +214,8 @@ function CustomTimePicker({
                     key={`m-${val}`}
                     onClick={() => handleSelect("minute", val)}
                     className={`cursor-pointer rounded-lg px-2 py-1.5 text-center text-sm transition-colors ${isSelected
-                        ? "bg-brand-500 text-white font-medium"
-                        : "hover:bg-gray-100 text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                      ? "bg-brand-500 text-white font-medium"
+                      : "hover:bg-gray-100 text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                       }`}
                   >
                     {val}
@@ -649,7 +649,7 @@ export default function TicketListBI() {
       )}
 
       <PageMeta
-        title="Support Ticket | BI Dashboard"
+        title="BI Manager | Ticket Management"
         description="Manage and track customer support tickets"
       />
 

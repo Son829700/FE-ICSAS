@@ -42,9 +42,9 @@ const FOOTER_STYLE = `
 export function buildActivationEmailBody(params: {
   username: string;
   email: string;
-  shopName?: string;
+  businessName?: string;
 }): string {
-  const { username, email, shopName } = params;
+  const { username, email, businessName } = params;
 
   const domain = "https://icsas.systems/";
 
@@ -179,7 +179,7 @@ Business: [Business Name]
 Purpose: Access dashboards for daily work.
 </div>
 
-    ${shopName
+    ${businessName
       ? `
     <div style="
       background:#f0fdf4;
@@ -189,7 +189,7 @@ Purpose: Access dashboards for daily work.
       margin-bottom:20px;
     ">
       <p style="margin:0;font-size:13px;color:#15803d;">
-        <strong>Assigned Shop:</strong> ${shopName}
+        <strong>Assigned Business:</strong> ${businessName}
       </p>
     </div>`
       : ""

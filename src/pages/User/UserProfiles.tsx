@@ -7,12 +7,12 @@ import PageMeta from "../../components/common/PageMeta";
 import UserPasswordCard from "../../components/UserProfile/UserAddressCard";
 
 export default function UserProfiles() {
-    const { user } = useAuthContext();
+  const { user } = useAuthContext();
   const isCustomer = user?.role === "CUSTOMER";
   return (
     <>
       <PageMeta
-        title="React.js Profile Dashboard | TailAdmin - Next.js Admin Dashboard Template"
+        title="User Profile"
         description="This is React.js Profile Dashboard page for TailAdmin - React.js Tailwind CSS Admin Dashboard Template"
       />
       <PageBreadcrumb pageTitle="Profile" />
@@ -23,7 +23,7 @@ export default function UserProfiles() {
         <div className="space-y-6">
           <UserMetaCard />
           <UserInfoCard />
-         {isCustomer && <UserPasswordCard />}
+          {isCustomer && <UserPasswordCard />}
         </div>
       </div>
     </>

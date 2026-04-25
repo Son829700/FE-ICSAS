@@ -32,17 +32,17 @@ const TICKET_TYPE_MAP: Record<string, string> = {
 };
 
 const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> =
-  {
-    DONE: "success",
-    RESOLVED: "success",
-    VERIFIED: "success",
-    APPROVED: "info",
-    IN_PROGRESS: "info",
-    WAITING_FOR_VERIFICATION: "warning",
-    CREATED: "warning",
-    REJECTED: "error",
-    CANCELLED: "error",
-  };
+{
+  DONE: "success",
+  RESOLVED: "success",
+  VERIFIED: "success",
+  APPROVED: "info",
+  IN_PROGRESS: "info",
+  WAITING_FOR_VERIFICATION: "warning",
+  CREATED: "warning",
+  REJECTED: "error",
+  CANCELLED: "error",
+};
 const PAGE_SIZE = 10;
 
 /* =======================
@@ -72,15 +72,15 @@ interface Ticket {
   reason: string;
   dashboard_id: string | null;
   status:
-    | "CREATED"
-    | "APPROVED"
-    | "IN_PROGRESS"
-    | "WAITING_FOR_VERIFICATION"
-    | "VERIFIED"
-    | "RESOLVED"
-    | "REJECTED"
-    | "CANCELLED"
-    | "DONE";
+  | "CREATED"
+  | "APPROVED"
+  | "IN_PROGRESS"
+  | "WAITING_FOR_VERIFICATION"
+  | "VERIFIED"
+  | "RESOLVED"
+  | "REJECTED"
+  | "CANCELLED"
+  | "DONE";
   assigned_staff: User | null;
   approver: User | null;
   createdAt: string;
@@ -116,15 +116,14 @@ function FlowProgress({ status }: { status: string }) {
         return (
           <div key={step} className="flex items-center gap-1">
             <div
-              className={`h-2 w-2 rounded-full transition-all ${
-                isRejected
+              className={`h-2 w-2 rounded-full transition-all ${isRejected
                   ? "bg-gray-200 dark:bg-gray-700"
                   : done
                     ? "bg-success-500"
                     : active
                       ? "bg-brand-500 animate-pulse"
                       : "bg-gray-200 dark:bg-gray-700"
-              }`}
+                }`}
             />
             {idx < FLOW_STEPS_TYPE2.length - 1 && (
               <div
@@ -436,11 +435,10 @@ function Type3ReviewModal({ ticket, onClose, onUpdated }: Type3ModalProps) {
                       onChange={(e) => setRejectReason(e.target.value)}
                       placeholder="Describe what needs to be fixed or improved..."
                       rows={4}
-                      className={`w-full rounded-lg border p-3 text-sm outline-none focus:ring-1 resize-none dark:bg-gray-800 dark:text-gray-300 transition ${
-                        !rejectReason.trim()
+                      className={`w-full rounded-lg border p-3 text-sm outline-none focus:ring-1 resize-none dark:bg-gray-800 dark:text-gray-300 transition ${!rejectReason.trim()
                           ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700"
                           : "border-gray-300 focus:border-brand-500 focus:ring-brand-500 dark:border-gray-700"
-                      }`}
+                        }`}
                     />
                   </div>
                   <div className="flex gap-3">
@@ -475,18 +473,16 @@ function Type3ReviewModal({ ticket, onClose, onUpdated }: Type3ModalProps) {
           {/* TERMINAL */}
           {isTerminal && (
             <div
-              className={`rounded-xl border px-4 py-3 ${
-                currentTicket.status === "VERIFIED"
+              className={`rounded-xl border px-4 py-3 ${currentTicket.status === "VERIFIED"
                   ? "border-success-200 bg-success-50 dark:border-success-800 dark:bg-success-900/10"
                   : "border-error-200 bg-error-50 dark:border-error-800 dark:bg-error-900/10"
-              }`}
+                }`}
             >
               <p
-                className={`text-sm font-medium ${
-                  currentTicket.status === "VERIFIED"
+                className={`text-sm font-medium ${currentTicket.status === "VERIFIED"
                     ? "text-success-700 dark:text-success-400"
                     : "text-error-600 dark:text-error-400"
-                }`}
+                  }`}
               >
                 {currentTicket.status === "VERIFIED"
                   ? "Dashboard verified and approved."
@@ -638,13 +634,12 @@ function Type2ReviewModal({
               label="Current Role"
               value={
                 <span
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                    currentTicket.requester?.role === "STAFF"
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${currentTicket.requester?.role === "STAFF"
                       ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
                       : currentTicket.requester?.role === "BI"
                         ? "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400"
                         : "bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400"
-                  }`}
+                    }`}
                 >
                   {currentTicket.requester?.role ?? "—"}
                 </span>
@@ -780,11 +775,10 @@ function Type2ReviewModal({
                     onChange={(e) => setRejectReason(e.target.value)}
                     placeholder="Explain why..."
                     rows={4}
-                    className={`w-full rounded-lg border p-3 text-sm outline-none focus:ring-1 resize-none dark:bg-gray-800 dark:text-gray-300 ${
-                      !rejectReason.trim()
+                    className={`w-full rounded-lg border p-3 text-sm outline-none focus:ring-1 resize-none dark:bg-gray-800 dark:text-gray-300 ${!rejectReason.trim()
                         ? "border-red-300 focus:border-red-500 focus:ring-red-500"
                         : "border-gray-300 focus:border-brand-500 focus:ring-brand-500"
-                    }`}
+                      }`}
                   />
                 </div>
               )}
@@ -792,11 +786,10 @@ function Type2ReviewModal({
                 <button
                   onClick={handleDecision}
                   disabled={submitting || isRejectWithoutReason}
-                  className={`flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium text-white transition disabled:opacity-50 ${
-                    decision === "REJECTED"
+                  className={`flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium text-white transition disabled:opacity-50 ${decision === "REJECTED"
                       ? "bg-error-500 hover:bg-error-600"
                       : "bg-brand-500 hover:bg-brand-600"
-                  }`}
+                    }`}
                 >
                   {submitting ? (
                     <Loader2 className="size-4 animate-spin" />
@@ -849,11 +842,10 @@ function Type2ReviewModal({
 
           {isTerminal && (
             <div
-              className={`rounded-xl border px-4 py-3 ${
-                currentTicket.status === "DONE"
+              className={`rounded-xl border px-4 py-3 ${currentTicket.status === "DONE"
                   ? "border-success-200 bg-success-50 dark:border-success-800 dark:bg-success-900/10"
                   : "border-error-200 bg-error-50 dark:border-error-800 dark:bg-error-900/10"
-              }`}
+                }`}
             >
               <p
                 className={`text-sm font-medium ${currentTicket.status === "DONE" ? "text-success-700" : "text-error-600"}`}
@@ -999,7 +991,7 @@ export default function AdminTicketManagement() {
       )}
 
       <PageMeta
-        title="Ticket Management | Admin"
+        title="Administrator | Ticket Management"
         description="Admin ticket management"
       />
 
@@ -1098,7 +1090,7 @@ export default function AdminTicketManagement() {
                 className={`flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition ${filter.status ? "border-brand-500 bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"}`}
               >
                 <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
-                  <path d="M14.6537 5.90414C14.6537 4.48433 13.5027 3.33331 12.0829 3.33331C10.6631 3.33331 9.51206 4.48433 9.51204 5.90415M14.6537 5.90414C14.6537 7.32398 13.5027 8.47498 12.0829 8.47498C10.663 8.47498 9.51204 7.32398 9.51204 5.90415M14.6537 5.90414L17.7087 5.90411M9.51204 5.90415L2.29199 5.90411M5.34694 14.0958C5.34694 12.676 6.49794 11.525 7.91777 11.525C9.33761 11.525 10.4886 12.676 10.4886 14.0958M5.34694 14.0958C5.34694 15.5156 6.49794 16.6666 7.91778 16.6666C9.33761 16.6666 10.4886 15.5156 10.4886 14.0958M5.34694 14.0958L2.29199 14.0958M10.4886 14.0958L17.7087 14.0958" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M14.6537 5.90414C14.6537 4.48433 13.5027 3.33331 12.0829 3.33331C10.6631 3.33331 9.51206 4.48433 9.51204 5.90415M14.6537 5.90414C14.6537 7.32398 13.5027 8.47498 12.0829 8.47498C10.663 8.47498 9.51204 7.32398 9.51204 5.90415M14.6537 5.90414L17.7087 5.90411M9.51204 5.90415L2.29199 5.90411M5.34694 14.0958C5.34694 12.676 6.49794 11.525 7.91777 11.525C9.33761 11.525 10.4886 12.676 10.4886 14.0958M5.34694 14.0958C5.34694 15.5156 6.49794 16.6666 7.91778 16.6666C9.33761 16.6666 10.4886 15.5156 10.4886 14.0958M5.34694 14.0958L2.29199 14.0958M10.4886 14.0958L17.7087 14.0958" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 {filter.status ? filter.status.replace(/_/g, " ") : "Status"}
                 {filter.status && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-500 text-[10px] text-white">1</span>}
@@ -1109,9 +1101,9 @@ export default function AdminTicketManagement() {
                   {["", "CREATED", "APPROVED", "RESOLVED", "WAITING_FOR_VERIFICATION", "VERIFIED", "DONE", "REJECTED", "CANCELLED"].map((s) => {
                     const dotClass = s ? (
                       statusColorMap[s] === "success" ? "bg-success-500" :
-                      statusColorMap[s] === "warning" ? "bg-warning-500" :
-                      statusColorMap[s] === "error" ? "bg-error-500" :
-                      "bg-info-500"
+                        statusColorMap[s] === "warning" ? "bg-warning-500" :
+                          statusColorMap[s] === "error" ? "bg-error-500" :
+                            "bg-info-500"
                     ) : "bg-gray-400";
                     return (
                       <button
@@ -1209,11 +1201,10 @@ export default function AdminTicketManagement() {
                       </TableCell>
                       <TableCell className="px-4 py-4">
                         <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            ticket.type === "TYPE2"
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ticket.type === "TYPE2"
                               ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
                               : "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400"
-                          }`}
+                            }`}
                         >
                           {TICKET_TYPE_MAP[ticket.type] ?? ticket.type}
                         </span>
@@ -1290,11 +1281,10 @@ export default function AdminTicketManagement() {
                     <li key={p}>
                       <button
                         onClick={() => setPage(p)}
-                        className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${
-                          page === p
+                        className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${page === p
                             ? "bg-brand-500 text-white"
                             : "text-gray-700 hover:bg-brand-500/10 dark:text-gray-400"
-                        }`}
+                          }`}
                       >
                         {p}
                       </button>

@@ -304,7 +304,7 @@ export default function DashboardManagement() {
       )}
 
       <PageMeta
-        title="Dashboard Management"
+        title="BI Developer | Dashboard Management"
         description="Manage system dashboards"
       />
       <PageBreadcrumb pageTitle="Dashboard Management" />
@@ -371,17 +371,15 @@ export default function DashboardManagement() {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setFilterOpen(!filterOpen)}
-                className={`flex h-10 min-w-[140px] items-center justify-between gap-1.5 rounded-lg border px-3 text-sm font-medium transition ${
-                  filterCategory
+                className={`flex h-10 min-w-[140px] items-center justify-between gap-1.5 rounded-lg border px-3 text-sm font-medium transition ${filterCategory
                     ? "border-brand-500 bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400"
                     : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-2">
                   {filterCategory && (
                     <span
-                      className={`h-2 w-2 rounded-full flex-shrink-0 ${
-                        filterCategory === "OVERVIEW"
+                      className={`h-2 w-2 rounded-full flex-shrink-0 ${filterCategory === "OVERVIEW"
                           ? "bg-blue-500"
                           : filterCategory === "ANALYTICS"
                             ? "bg-purple-500"
@@ -390,12 +388,12 @@ export default function DashboardManagement() {
                               : filterCategory === "MARKETING"
                                 ? "bg-pink-500"
                                 : "bg-orange-500"
-                      }`}
+                        }`}
                     />
                   )}
                   {filterCategory
                     ? filterCategory.charAt(0) +
-                      filterCategory.slice(1).toLowerCase()
+                    filterCategory.slice(1).toLowerCase()
                     : "All Categories"}
                 </div>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -407,17 +405,17 @@ export default function DashboardManagement() {
                 <div className="absolute right-0 z-20 mt-2 w-48 rounded-xl border border-gray-200 bg-white py-1.5 shadow-lg dark:border-gray-700 dark:bg-gray-800">
                   {["", "OVERVIEW", "ANALYTICS", "SALES", "MARKETING", "SUPPORT"].map((c) => {
                     const dotClass =
-                        c === "OVERVIEW"
-                          ? "bg-blue-500"
-                          : c === "ANALYTICS"
-                            ? "bg-purple-500"
-                            : c === "SALES"
-                              ? "bg-green-500"
-                              : c === "MARKETING"
-                                ? "bg-pink-500"
-                                : c === "SUPPORT"
-                                  ? "bg-orange-500"
-                                  : "bg-gray-400";
+                      c === "OVERVIEW"
+                        ? "bg-blue-500"
+                        : c === "ANALYTICS"
+                          ? "bg-purple-500"
+                          : c === "SALES"
+                            ? "bg-green-500"
+                            : c === "MARKETING"
+                              ? "bg-pink-500"
+                              : c === "SUPPORT"
+                                ? "bg-orange-500"
+                                : "bg-gray-400";
                     return (
                       <button
                         key={c}

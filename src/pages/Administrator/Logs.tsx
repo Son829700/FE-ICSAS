@@ -202,8 +202,8 @@ function LogDetailModal({ log, onClose }: { log: ApiLog; onClose: () => void }) 
           {loading ? (
             <div className="flex items-center justify-center py-6 text-sm text-gray-400">
               <svg className="animate-spin mr-2 size-4" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
               Loading...
             </div>
@@ -297,7 +297,7 @@ const LogsList: React.FC = () => {
   return (
     <>
       {selectedLog && <LogDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />}
-      <PageMeta title="Logs" description="System audit logs" />
+      <PageMeta title="Administrator | Logs" description="System audit logs" />
       <PageBreadcrumb pageTitle="Logs" />
 
       <div className="grid grid-cols-2 gap-4 mb-6 sm:grid-cols-4">
@@ -325,7 +325,7 @@ const LogsList: React.FC = () => {
             <div className="relative">
               <span className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400">
                 <svg className="fill-current" width="15" height="15" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" clipRule="evenodd" d="M3.04199 9.37363C3.04199 5.87693 5.87735 3.04199 9.37533 3.04199C12.8733 3.04199 15.7087 5.87693 15.7087 9.37363C15.7087 12.8703 12.8733 15.7053 9.37533 15.7053C5.87735 15.7053 3.04199 12.8703 3.04199 9.37363ZM9.37533 1.54199C5.04926 1.54199 1.54199 5.04817 1.54199 9.37363C1.54199 13.6991 5.04926 17.2053 9.37533 17.2053C11.2676 17.2053 13.0032 16.5344 14.3572 15.4176L17.1773 18.238C17.4702 18.5309 17.945 18.5309 18.2379 18.238C18.5308 17.9451 18.5309 17.4703 18.238 17.1773L15.4182 14.3573C16.5367 13.0033 17.2087 11.2669 17.2087 9.37363C17.2087 5.04817 13.7014 1.54199 9.37533 1.54199Z"/>
+                  <path fillRule="evenodd" clipRule="evenodd" d="M3.04199 9.37363C3.04199 5.87693 5.87735 3.04199 9.37533 3.04199C12.8733 3.04199 15.7087 5.87693 15.7087 9.37363C15.7087 12.8703 12.8733 15.7053 9.37533 15.7053C5.87735 15.7053 3.04199 12.8703 3.04199 9.37363ZM9.37533 1.54199C5.04926 1.54199 1.54199 5.04817 1.54199 9.37363C1.54199 13.6991 5.04926 17.2053 9.37533 17.2053C11.2676 17.2053 13.0032 16.5344 14.3572 15.4176L17.1773 18.238C17.4702 18.5309 17.945 18.5309 18.2379 18.238C18.5308 17.9451 18.5309 17.4703 18.238 17.1773L15.4182 14.3573C16.5367 13.0033 17.2087 11.2669 17.2087 9.37363C17.2087 5.04817 13.7014 1.54199 9.37533 1.54199Z" />
                 </svg>
               </span>
               <input type="text" placeholder="Search..." value={search}
@@ -349,7 +349,7 @@ const LogsList: React.FC = () => {
               <button onClick={() => setFilterOpen(!filterOpen)}
                 className={`flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition ${entityFilter !== "ALL" ? "border-brand-500 bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"}`}>
                 <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
-                  <path d="M14.6537 5.90414C14.6537 4.48433 13.5027 3.33331 12.0829 3.33331C10.6631 3.33331 9.51206 4.48433 9.51204 5.90415M14.6537 5.90414C14.6537 7.32398 13.5027 8.47498 12.0829 8.47498C10.663 8.47498 9.51204 7.32398 9.51204 5.90415M14.6537 5.90414L17.7087 5.90411M9.51204 5.90415L2.29199 5.90411M5.34694 14.0958C5.34694 12.676 6.49794 11.525 7.91777 11.525C9.33761 11.525 10.4886 12.676 10.4886 14.0958M5.34694 14.0958C5.34694 15.5156 6.49794 16.6666 7.91778 16.6666C9.33761 16.6666 10.4886 15.5156 10.4886 14.0958M5.34694 14.0958L2.29199 14.0958M10.4886 14.0958L17.7087 14.0958" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M14.6537 5.90414C14.6537 4.48433 13.5027 3.33331 12.0829 3.33331C10.6631 3.33331 9.51206 4.48433 9.51204 5.90415M14.6537 5.90414C14.6537 7.32398 13.5027 8.47498 12.0829 8.47498C10.663 8.47498 9.51204 7.32398 9.51204 5.90415M14.6537 5.90414L17.7087 5.90411M9.51204 5.90415L2.29199 5.90411M5.34694 14.0958C5.34694 12.676 6.49794 11.525 7.91777 11.525C9.33761 11.525 10.4886 12.676 10.4886 14.0958M5.34694 14.0958C5.34694 15.5156 6.49794 16.6666 7.91778 16.6666C9.33761 16.6666 10.4886 15.5156 10.4886 14.0958M5.34694 14.0958L2.29199 14.0958M10.4886 14.0958L17.7087 14.0958" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 {entityFilter === "ALL" ? "Entity" : entityFilter.charAt(0) + entityFilter.slice(1).toLowerCase()}
                 {entityFilter !== "ALL" && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-500 text-[10px] text-white">1</span>}
@@ -390,8 +390,8 @@ const LogsList: React.FC = () => {
                 <tr><td colSpan={6} className="py-12 text-center text-sm text-gray-400">
                   <div className="flex items-center justify-center gap-2">
                     <svg className="animate-spin size-4" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                     </svg>
                     Loading logs...
                   </div>
@@ -449,9 +449,9 @@ const LogsList: React.FC = () => {
               .map((p, i) => p === "…"
                 ? <span key={`e${i}`} className="px-1 text-gray-400 text-sm">…</span>
                 : <button key={p} onClick={() => setPage(p as number)}
-                    className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition ${page === p ? "bg-brand-500 text-white" : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"}`}>
-                    {p}
-                  </button>
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition ${page === p ? "bg-brand-500 text-white" : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"}`}>
+                  {p}
+                </button>
               )}
             <button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}
               className="h-9 rounded-lg border border-gray-200 bg-white px-3.5 text-sm text-gray-600 disabled:opacity-40 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 transition">Next</button>

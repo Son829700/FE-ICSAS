@@ -607,7 +607,7 @@ export default function GroupDetail() {
   return (
     <div className="space-y-6">
       <PageMeta
-        title={`${group.group_name} | Group Detail`}
+        title={`BI Developer | ${group.group_name}`}
         description="Group detail"
       />
 

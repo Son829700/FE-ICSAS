@@ -165,7 +165,7 @@ export default function DashboardUsageLogs() {
 
   return (
     <>
-      <PageMeta title="Dashboard Usage Logs" description="Track who viewed which dashboard" />
+      <PageMeta title="BI Developer | Dashboard Usage Logs" description="Track who viewed which dashboard" />
       <PageBreadcrumb pageTitle="Dashboard Usage Logs" />
 
       {/* Stats */}
@@ -253,7 +253,7 @@ export default function DashboardUsageLogs() {
             <div className="relative">
               <span className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400">
                 <svg className="fill-current" width="15" height="15" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" clipRule="evenodd" d="M3.04199 9.37363C3.04199 5.87693 5.87735 3.04199 9.37533 3.04199C12.8733 3.04199 15.7087 5.87693 15.7087 9.37363C15.7087 12.8703 12.8733 15.7053 9.37533 15.7053C5.87735 15.7053 3.04199 12.8703 3.04199 9.37363ZM9.37533 1.54199C5.04926 1.54199 1.54199 5.04817 1.54199 9.37363C1.54199 13.6991 5.04926 17.2053 9.37533 17.2053C11.2676 17.2053 13.0032 16.5344 14.3572 15.4176L17.1773 18.238C17.4702 18.5309 17.945 18.5309 18.2379 18.238C18.5308 17.9451 18.5309 17.4703 18.238 17.1773L15.4182 14.3573C16.5367 13.0033 17.2087 11.2669 17.2087 9.37363C17.2087 5.04817 13.7014 1.54199 9.37533 1.54199Z"/>
+                  <path fillRule="evenodd" clipRule="evenodd" d="M3.04199 9.37363C3.04199 5.87693 5.87735 3.04199 9.37533 3.04199C12.8733 3.04199 15.7087 5.87693 15.7087 9.37363C15.7087 12.8703 12.8733 15.7053 9.37533 15.7053C5.87735 15.7053 3.04199 12.8703 3.04199 9.37363ZM9.37533 1.54199C5.04926 1.54199 1.54199 5.04817 1.54199 9.37363C1.54199 13.6991 5.04926 17.2053 9.37533 17.2053C11.2676 17.2053 13.0032 16.5344 14.3572 15.4176L17.1773 18.238C17.4702 18.5309 17.945 18.5309 18.2379 18.238C18.5308 17.9451 18.5309 17.4703 18.238 17.1773L15.4182 14.3573C16.5367 13.0033 17.2087 11.2669 17.2087 9.37363C17.2087 5.04817 13.7014 1.54199 9.37533 1.54199Z" />
                 </svg>
               </span>
               <input type="text" placeholder="Search user, dashboard..." value={search}
@@ -321,8 +321,8 @@ export default function DashboardUsageLogs() {
                 <tr><td colSpan={6} className="py-12 text-center text-sm text-gray-400">
                   <div className="flex items-center justify-center gap-2">
                     <svg className="animate-spin size-4" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                     </svg>
                     Loading logs...
                   </div>
@@ -404,9 +404,9 @@ export default function DashboardUsageLogs() {
               .map((p, i) => p === "…"
                 ? <span key={`e${i}`} className="px-1 text-gray-400 text-sm">…</span>
                 : <button key={p} onClick={() => setPage(p as number)}
-                    className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition ${page === p ? "bg-brand-500 text-white" : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"}`}>
-                    {p}
-                  </button>
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition ${page === p ? "bg-brand-500 text-white" : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"}`}>
+                  {p}
+                </button>
               )}
             <button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}
               className="h-9 rounded-lg border border-gray-200 bg-white px-3.5 text-sm text-gray-600 disabled:opacity-40 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 transition">Next</button>

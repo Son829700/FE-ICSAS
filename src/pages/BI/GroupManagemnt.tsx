@@ -58,8 +58,8 @@ function ConfirmModal({
         <div className="flex flex-col items-center gap-3 text-center">
           <div
             className={`flex h-12 w-12 items-center justify-center rounded-full ${isActive
-                ? "bg-red-100 dark:bg-red-900/30"
-                : "bg-emerald-100 dark:bg-emerald-900/30"
+              ? "bg-red-100 dark:bg-red-900/30"
+              : "bg-emerald-100 dark:bg-emerald-900/30"
               }`}
           >
             {isActive ? (
@@ -105,8 +105,8 @@ function ConfirmModal({
           <button
             onClick={onConfirm}
             className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition ${isActive
-                ? "bg-red-500 hover:bg-red-600"
-                : "bg-emerald-600 hover:bg-emerald-700"
+              ? "bg-red-500 hover:bg-red-600"
+              : "bg-emerald-600 hover:bg-emerald-700"
               }`}
           >
             {isActive ? "Yes, Deactivate" : "Yes, Restore"}
@@ -323,7 +323,7 @@ export default function GroupManagement() {
         />
       )}
 
-      <PageMeta title="Group Management" description="Manage user groups" />
+      <PageMeta title="BI Developer | Group Management" description="Manage user groups" />
       <PageBreadcrumb pageTitle="Group Management" />
 
       {/* Stats */}
@@ -415,9 +415,9 @@ export default function GroupManagement() {
               {filterOpen && (
                 <div className="absolute right-0 z-20 mt-2 w-48 rounded-xl border border-gray-200 bg-white py-1.5 shadow-lg dark:border-gray-700 dark:bg-gray-800">
                   {["", "ACTIVE", "INACTIVE"].map((s) => {
-                    const dotClass = 
+                    const dotClass =
                       s === "ACTIVE" ? "bg-emerald-500" :
-                      s === "INACTIVE" ? "bg-red-500" : "bg-gray-400";
+                        s === "INACTIVE" ? "bg-red-500" : "bg-gray-400";
                     return (
                       <button
                         key={s}
@@ -526,10 +526,10 @@ export default function GroupManagement() {
                     <TableCell className="px-5 py-4">
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${group.groupType === "TRADITIONAL"
-                            ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
-                            : group.groupType === "ADHOC"
-                              ? "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400"
-                              : "bg-gray-100 text-gray-500"
+                          ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
+                          : group.groupType === "ADHOC"
+                            ? "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400"
+                            : "bg-gray-100 text-gray-500"
                           }`}
                       >
                         {group.groupType === "TRADITIONAL"
@@ -544,8 +544,8 @@ export default function GroupManagement() {
                     <TableCell className="px-5 py-4">
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${group.status === "ACTIVE"
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                            : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                          : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
                           }`}
                       >
                         {group.status}
@@ -651,8 +651,8 @@ export default function GroupManagement() {
                 key={p}
                 onClick={() => setCurrentPage(p)}
                 className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition ${currentPage === p
-                    ? "bg-brand-500 text-white"
-                    : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+                  ? "bg-brand-500 text-white"
+                  : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
                   }`}
               >
                 {p}
@@ -719,8 +719,8 @@ export default function GroupManagement() {
                 <label
                   key={type}
                   className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${formData.groupType === type
-                      ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10"
-                      : "border-gray-200 hover:border-gray-300 dark:border-gray-700"
+                    ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10"
+                    : "border-gray-200 hover:border-gray-300 dark:border-gray-700"
                     }`}
                 >
                   <input
@@ -733,8 +733,8 @@ export default function GroupManagement() {
                   />
                   <div
                     className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${formData.groupType === type
-                        ? "border-brand-500"
-                        : "border-gray-300"
+                      ? "border-brand-500"
+                      : "border-gray-300"
                       }`}
                   >
                     {formData.groupType === type && (

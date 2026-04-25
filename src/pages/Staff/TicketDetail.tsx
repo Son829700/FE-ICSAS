@@ -45,15 +45,15 @@ interface Ticket {
   dashboard_id: string;
   reason: string;
   status:
-    | "CREATED"
-    | "APPROVED"
-    | "IN_PROGRESS"
-    | "WAITING_FOR_VERIFICATION"
-    | "VERIFIED"
-    | "RESOLVED"
-    | "REJECTED"
-    | "CANCELLED"
-    | "DONE";
+  | "CREATED"
+  | "APPROVED"
+  | "IN_PROGRESS"
+  | "WAITING_FOR_VERIFICATION"
+  | "VERIFIED"
+  | "RESOLVED"
+  | "REJECTED"
+  | "CANCELLED"
+  | "DONE";
   assigned_staff: User | null;
   approver: User | null;
   createdAt: string;
@@ -71,17 +71,17 @@ const TICKET_TYPE_MAP: Record<string, string> = {
 };
 
 const statusColorMap: Record<string, "success" | "warning" | "error" | "info"> =
-  {
-    DONE: "success",
-    RESOLVED: "success",
-    VERIFIED: "success",
-    APPROVED: "success",
-    IN_PROGRESS: "info",
-    WAITING_FOR_VERIFICATION: "warning",
-    CREATED: "info",
-    REJECTED: "error",
-    CANCELLED: "error",
-  };
+{
+  DONE: "success",
+  RESOLVED: "success",
+  VERIFIED: "success",
+  APPROVED: "success",
+  IN_PROGRESS: "info",
+  WAITING_FOR_VERIFICATION: "warning",
+  CREATED: "info",
+  REJECTED: "error",
+  CANCELLED: "error",
+};
 
 type TerminalStatus = "REJECTED" | "CANCELLED";
 const TERMINAL_STATUSES: TerminalStatus[] = ["REJECTED", "CANCELLED"];
@@ -228,7 +228,7 @@ function isTerminalStatus(status: string): status is TerminalStatus {
 export default function TicketDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
@@ -254,13 +254,13 @@ export default function TicketDetail() {
     try {
       setConfirming(true);
       await API.post(`/tickets/${ticket.ticket_id}/status/DONE`);
-      
+
       if (ticket.type === "TYPE2") {
         toast.success("Profile updated! Please login again to apply changes.");
         await logout();
         return;
       }
-      
+
       const res = await API.get(`/tickets/${ticket.ticket_id}`);
       setTicket(res.data.data);
       toast.success("Thank you for confirming!");
@@ -358,11 +358,10 @@ export default function TicketDetail() {
           {terminal ? (
             /* Terminal banner */
             <div
-              className={`rounded-xl border px-5 py-4 flex items-start gap-3 ${
-                ticket.status === "REJECTED"
+              className={`rounded-xl border px-5 py-4 flex items-start gap-3 ${ticket.status === "REJECTED"
                   ? "border-error-200 bg-error-50 dark:border-error-800 dark:bg-error-900/20"
                   : "border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/40"
-              }`}
+                }`}
             >
               {ticket.status === "REJECTED" ? (
                 <XCircle className="size-5 text-error-500 shrink-0 mt-0.5" />
@@ -371,11 +370,10 @@ export default function TicketDetail() {
               )}
               <div>
                 <p
-                  className={`text-sm font-medium ${
-                    ticket.status === "REJECTED"
+                  className={`text-sm font-medium ${ticket.status === "REJECTED"
                       ? "text-error-600 dark:text-error-400"
                       : "text-gray-600 dark:text-gray-400"
-                  }`}
+                    }`}
                 >
                   {ticket.status === "REJECTED"
                     ? "This ticket has been rejected."
@@ -383,11 +381,10 @@ export default function TicketDetail() {
                 </p>
                 {ticket.reason && (
                   <p
-                    className={`mt-1 text-sm ${
-                      ticket.status === "REJECTED"
+                    className={`mt-1 text-sm ${ticket.status === "REJECTED"
                         ? "text-error-500 dark:text-error-300"
                         : "text-gray-500 dark:text-gray-400"
-                    }`}
+                      }`}
                   >
                     Reason: {ticket.reason}
                   </p>
@@ -411,13 +408,12 @@ export default function TicketDetail() {
                   >
                     {/* Circle */}
                     <div
-                      className={`flex h-12 w-12 items-center justify-center rounded-full border-2 ring transition-all ${
-                        isDone
+                      className={`flex h-12 w-12 items-center justify-center rounded-full border-2 ring transition-all ${isDone
                           ? "border-success-200 bg-success-50 text-success-600 ring-success-200 dark:border-success-800 dark:bg-success-900/40 dark:text-success-400 dark:ring-success-800"
                           : isActive
                             ? "border-brand-200 bg-brand-50 text-brand-600 ring-brand-200 dark:border-brand-800 dark:bg-brand-900/40 dark:text-brand-400 dark:ring-brand-800"
                             : "border-gray-100 bg-white text-gray-400 ring-gray-200 dark:border-gray-800 dark:bg-gray-900 dark:ring-gray-800"
-                      }`}
+                        }`}
                     >
                       {isActive && !isLast ? (
                         <Loader2 className="size-5 animate-spin" />
@@ -430,20 +426,18 @@ export default function TicketDetail() {
 
                     {/* Label */}
                     <h4
-                      className={`mt-3 text-xs font-medium sm:text-sm ${
-                        isDone || isActive
+                      className={`mt-3 text-xs font-medium sm:text-sm ${isDone || isActive
                           ? "text-gray-800 dark:text-white/90"
                           : "text-gray-400 dark:text-gray-600"
-                      }`}
+                        }`}
                     >
                       {step.label}
                     </h4>
                     <p
-                      className={`text-xs mt-0.5 hidden sm:block ${
-                        isDone || isActive
+                      className={`text-xs mt-0.5 hidden sm:block ${isDone || isActive
                           ? "text-gray-500 dark:text-gray-400"
                           : "text-gray-300 dark:text-gray-700"
-                      }`}
+                        }`}
                     >
                       {step.description}
                     </p>
