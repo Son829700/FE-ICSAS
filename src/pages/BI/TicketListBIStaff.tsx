@@ -527,14 +527,10 @@ function TicketDetailModal({
           {currentTicket.status === "RESOLVED" && (
             <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 dark:border-blue-800 dark:bg-blue-900/10">
               <p className="text-sm font-medium text-blue-700 dark:text-blue-400">
-                {isType3
-                  ? "Waiting for Admin to review the dashboard draft"
-                  : "Waiting for requester confirmation"}
+                Waiting for requester confirmation
               </p>
               <p className="mt-1 text-xs text-blue-500 dark:text-blue-300">
-                {isType3
-                  ? "Admin will approve or send back for revision."
-                  : "The requester needs to verify and confirm completion."}
+                The requester needs to verify and confirm completion.
               </p>
             </div>
           )}
